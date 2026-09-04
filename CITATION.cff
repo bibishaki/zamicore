@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use or implement this architectural standard, please cite it as below."
+title: "ZamiCore v2.3: Deterministic Waveguide & Topological Memory Architecture"
+abstract: "A non-patented open scientific specification for deterministic AI inference using conical flat-bottom waveguides, 23,488-byte V-buffer swap-chains, and NVMe-backed hierarchical tree attention."
+type: software
+authors:
+  - name: "ZamiCore Architecture Working Group"
+version: "2.3.0"
+date-released: "2026-09-05"
+license: "BSD-2-Clause"
+repository-code: "https://github.com"
+keywords:
+  - "deterministic inference"
+  - "topological memory"
+  - "waveguide attention"
+  - "openzfs"
+  - "freebsd"
+  - "prior art"
