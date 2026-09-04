@@ -348,13 +348,16 @@ $$V(b, t) = \sum_{k} \exp\left( -\frac{t - t_k}{\tau_{\mathrm{decay}}} \right), 
 Архитектура ZamiCore исключает применение внешних векторных индексов (k-NN/HNSW). Физическая иерархия данных на диске («Стволы — Рукава — Бассейны») представляет собой прямое пространственное отображение многоуровневого оператора внимания (**Hierarchical Tree Attention**):
 
 1. **Слой внимания Стволов (Macro-Routing):** срез экватора $\vec{h}^{(l_{\mathrm{eq}})}$ определяет глобальный домен задачи через верхний уровень Softmax:
-   $$\alpha_{\mathrm{trunk}} = \mathrm{softmax}\left( \frac{\vec{h}^{(l_{\mathrm{eq}})} \mathbf{C}_{\mathrm{trunks}}^{T}}{\tau \sqrt{d_{\mathrm{model}}}} \right)$$
+
+$$\alpha_{\mathrm{trunk}} = \mathrm{softmax}\left( \frac{\vec{h}^{(l_{\mathrm{eq}})} \mathbf{C}_{\mathrm{trunks}}^{T}}{\tau \sqrt{d_{\mathrm{model}}}} \right)$$
 
 2. **Слой внимания Рукавов (Meso-Routing):** селекция целевого дифференциального рукава внутри активного ствола:
-   $$\alpha_{\mathrm{branch}} = \mathrm{softmax}\left( \frac{\vec{h}^{(l_{\mathrm{eq}})} \mathbf{C}_{\mathrm{branches}}^{T}}{\tau \sqrt{d_{\mathrm{model}}}} \right)$$
+
+$$\alpha_{\mathrm{branch}} = \mathrm{softmax}\left( \frac{\vec{h}^{(l_{\mathrm{eq}})} \mathbf{C}_{\mathrm{branches}}^{T}}{\tau \sqrt{d_{\mathrm{model}}}} \right)$$
 
 3. **Слой внимания Бассейнов (Micro-Routing):** локальный Softmax по 32 бассейнам в пределах единственной 4 КБ страницы ZFS, прочитанной с NVMe:
-   $$\alpha_{\mathrm{basin}} = \mathrm{softmax}\left( \frac{\vec{h}^{(l_{\mathrm{eq}})} \mathbf{C}_{\mathrm{page32}}^{T}}{\tau \sqrt{d_{\mathrm{model}}}} \right)$$
+
+$$\alpha_{\mathrm{basin}} = \mathrm{softmax}\left( \frac{\vec{h}^{(l_{\mathrm{eq}})} \mathbf{C}_{\mathrm{page32}}^{T}}{\tau \sqrt{d_{\mathrm{model}}}} \right)$$
 
 Факторизация каньонов и отсечение расходящихся рукавов выступают динамическим расширением графа Softmax, сохраняя логарифмическую вычислительную сложность выборки $O(\log N)$ и детерминированный аппаратный отклик накопителя NVMe.
 
