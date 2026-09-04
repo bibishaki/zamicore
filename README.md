@@ -1,6 +1,25 @@
 # zamicore
 Deterministic Flat-Bottom Waveguide &amp; Topological Context Engine for Zero-Drift LLM Inference
+
+Да, именно так! GitHub использует для отображения математики библиотеку **KaTeX** в строгом режиме безопасности. В ней макрос `\operatorname` заблокирован, поэтому на странице репозитория формулы с ним ломаются и выдают красную ошибку:
+
+`The following macros are not allowed: operatorname`.
+
+Вместо `\operatorname{...}` в формулах на GitHub используется стандартная команда **`\mathrm{...}`** (Roman font) или обычный текст. Она поддерживается KaTeX на 100% и выглядит визуально абсолютно идентично.
+
+Также для полной совместимости с движком рендеринга GitHub все дроби переведены на стандартный `\frac`.
+
+Ниже — **полностью очищенная и исправленная версия `README.md**`, в которой заменены все несовместимые макросы. Вы можете просто скопировать её целиком, заменить текст в файле и сделать коммит.
+
+---
+
+```markdown
 # ZamiCore: Детерминированная волноводная архитектура сопряжения скрытых состояний и постоянная топологическая память для инференса больших языковых моделей
+
+[![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](LICENSE)
+[![Specification: v2.3](https://img.shields.io/badge/Specification-v2.3-green.svg)](#)
+[![Target Platform: FreeBSD 14+](https://img.shields.io/badge/Platform-FreeBSD_14+-red.svg)](#)
+[![Status: Master Freeze](https://img.shields.io/badge/Status-Prior_Art_Standard-brightgreen.svg)](#)
 
 ---
 
@@ -8,11 +27,10 @@ Deterministic Flat-Bottom Waveguide &amp; Topological Context Engine for Zero-Dr
 
 Авторегрессионный инференс современных трансформаторных моделей страдает от фундаментального архитектурного порока: жесткой сцепки контекста сессии с кэшем ключей и значений (KV-кэш) вычислителя. Это порождает квадратичную сложность $O(N^2)$, накопление паразитных токенов («зомби-внимание»), необратимый контекстный дрейф (Context Drift) и экспоненциальный рост расхода видеопамяти. Традиционные методы принудительного векторного наведения (Steering Vectors, RepControl) неизбежно вызывают энтропийный коллапс и утрату логической связности («нейросетевая лоботомия»).
 
-**ZamiCore v2.3** устраняет эту проблему за счет полного разделения статического пространства весов ($P_S$) и динамического ландшафта задачи ($P_U$).
+**ZamiCore v2.3** устраняет эту проблему за счет полного разделения статического пространства весов ($P_S$) и динамического ландшафта задачи ($P_U$). 
 
 Ключевые инновации стандарта:
-
-1. **Конический волновод с плоским дном (Flat-Bottom Waveguide / Semantic Funnel):** стратифицированное воздействие на промежуточных слоях трансформера ($l_{\text{eq}} \dots l^*$), формирующее упругий коридор с нулевым потенциалом на дне. Это гарантирует сохранение 100% стохастической автономии модели на терминальных слоях рассуждения ($l > l^*$).
+1. **Конический волновод с плоским дном (Flat-Bottom Waveguide / Semantic Funnel):** стратифицированное воздействие на промежуточных слоях трансформера ($l_{\mathrm{eq}} \dots l^*$), формирующее упругий коридор с нулевым потенциалом на дне. Это гарантирует сохранение 100% стохастической автономии модели на терминальных слоях рассуждения ($l > l^*$).
 2. **Константный кадровый буфер (V-Buffer):** бессистемный (`lockless`) интерфейс размером 23.4 КБ, функционирующий по принципу Uniform-буферов графических конвейеров (Vulkan SwapChain). Позволяет удерживать контекст как независимый «игровой уровень» и переключать сессии за $O(1)$ по времени (256 наносекунд).
 3. **Топологический контур внешней памяти ($P_U$):** неизменяемая структура «Стволы — Рукава — Бассейны» на постоянных блочных накопителях (NVMe/ZFS), защищенная доменным шлюзом ингресса и стабилизированная алгоритмом гравитационной аккреции.
 
@@ -75,7 +93,7 @@ Deterministic Flat-Bottom Waveguide &amp; Topological Context Engine for Zero-Dr
 
 Для устранения энтропийного разброса без деградации рассудочной способности модели (предотвращение лоботомии) слои нейро-ядра разделяются на три функциональные зоны:
 
-$$\mathcal{L}_1 = [0, \; l_{\text{eq}} - 1], \quad \mathcal{L}_2 = [l_{\text{eq}}, \; l^*], \quad \mathcal{L}_3 = [l^* + 1, \; L - 1]$$
+$$\mathcal{L}_1 = [0, \; l_{\mathrm{eq}} - 1], \quad \mathcal{L}_2 = [l_{\mathrm{eq}}, \; l^*], \quad \mathcal{L}_3 = [l^* + 1, \; L - 1]$$
 
 ```text
  ВХОД                                                                             ВЫХОД
@@ -91,58 +109,58 @@ $$\mathcal{L}_1 = [0, \; l_{\text{eq}} - 1], \quad \mathcal{L}_2 = [l_{\text{eq}
 
 ```
 
-### 2.1. Зона 1: Сенсорное восприятие ($0 \le l < l_{\text{eq}}$)
+### 2.1. Зона 1: Сенсорное восприятие ($0 \le l < l_{\mathrm{eq}}$)
 
 * **Границы:** от слоя эмбеддингов до экватора (слои $0 \dots 7$ для модели с $L=24$).
 * **Физика:** парсинг токенов, расчет синтаксических зависимостей, наложение поворотных матриц позиционирования (RoPE). Вектор луча принудительно отключен: $\lambda(l) \equiv 0$. Входной текст и служебный синтаксис считываются без искажений.
 
-### 2.2. Зона 2: Конический волновод-конфузор ($l_{\text{eq}} \le l \le l^*$)
+### 2.2. Зона 2: Конический волновод-конфузор ($l_{\mathrm{eq}} \le l \le l^*$)
 
-* **Границы:** от слоя экватора $l_{\text{eq}}$ до рубежа пластичности $l^*$ (слои $8 \dots 12$).
+* **Границы:** от слоя экватора $l_{\mathrm{eq}}$ до рубежа пластичности $l^*$ (слои $8 \dots 12$).
 * **Физика:** динамическая воронка (Semantic Funnel). Сечение волновода плавно сужается от широкого раструба входа до проектной горловины рабочего каньона:
 
-$$R(l) = R_{\text{target}} + (R_{\text{wide}} - R_{\text{target}}) \cdot \left( \frac{l^* - l}{l^* - l_{\text{eq}}} \right)^\gamma, \quad \forall l \in [l_{\text{eq}}, \; l^*]$$
+$$R(l) = R_{\mathrm{target}} + (R_{\mathrm{wide}} - R_{\mathrm{target}}) \cdot \left( \frac{l^* - l}{l^* - l_{\mathrm{eq}}} \right)^\gamma, \quad \forall l \in [l_{\mathrm{eq}}, \; l^*]$$
 
 где:
 
-* $R_{\text{wide}} = 0.85$ — входной радиус воронки на слое $l_{\text{eq}}$;
-* $R_{\text{target}} = 0.35$ — радиус горловины каньона на слое $l^*$;
+* $R_{\mathrm{wide}} = 0.85$ — входной радиус воронки на слое $l_{\mathrm{eq}}$;
+* $R_{\mathrm{target}} = 0.35$ — радиус горловины каньона на слое $l^*$;
 * $\gamma = 1.50$ — показатель профиля кривизны конфузора.
 
 #### Разложение вектора состояния
 
-На каждом промежуточном слое скрытый вектор $\vec{h}^{(l)}$ раскладывается относительно канонической оси $\vec{C}_{\text{canon}}$:
+На каждом промежуточном слое скрытый вектор $\vec{h}^{(l)}$ раскладывается относительно канонической оси $\vec{C}_{\mathrm{canon}}$:
 
-$$\vec{h}_{\parallel}^{(l)} = \langle \vec{h}^{(l)}, \vec{C}_{\text{canon}} \rangle \vec{C}_{\text{canon}}, \quad \vec{h}_{\perp}^{(l)} = \vec{h}^{(l)} - \vec{h}_{\parallel}^{(l)}, \quad d_{\perp}^{(l)} = \Vert{}\vec{h}_{\perp}^{(l)}\Vert{}_2$$
+$$\vec{h}_{\parallel}^{(l)} = \langle \vec{h}^{(l)}, \vec{C}_{\mathrm{canon}} \rangle \vec{C}_{\mathrm{canon}}, \quad \vec{h}_{\perp}^{(l)} = \vec{h}^{(l)} - \vec{h}_{\parallel}^{(l)}, \quad d_{\perp}^{(l)} = \Vert{}\vec{h}_{\perp}^{(l)}\Vert{}_2$$
 
 #### Потенциальное поле с плоским дном
 
 Потенциальная функция коридора $U(d_{\perp}, l)$ обеспечивает свободное блуждание внутри радиуса допуска и резкое упругое отражение при попытке выхода за границу:
 
-$$U(d_{\perp}, l) = \begin{cases} 0, & d_{\perp} \le R(l) \quad \text{\bf [Плоское дно: свободное мышление]} \\ \dfrac{1}{2} k_{\text{wall}}(l) \cdot \left( d_{\perp} - R(l) \right)^2, & d_{\perp} > R(l) \quad \text{\bf [Упругая стенка каньона]} \end{cases}$$
+$$U(d_{\perp}, l) = \begin{cases} 0, & d_{\perp} \le R(l) \quad \text{\bf [Плоское дно: свободное мышление]} \\ \frac{1}{2} k_{\mathrm{wall}}(l) \cdot \left( d_{\perp} - R(l) \right)^2, & d_{\perp} > R(l) \quad \text{\bf [Упругая стенка каньона]} \end{cases}$$
 
 Жесткость стенки нарастает по мере приближения к рубежу пластичности:
 
-$$k_{\text{wall}}(l) = k_0 \cdot \left( 1 + \beta_{\text{stiff}} \cdot \frac{l - l_{\text{eq}}}{l^* - l_{\text{eq}}} \right)$$
+$$k_{\mathrm{wall}}(l) = k_0 \cdot \left( 1 + \beta_{\mathrm{stiff}} \cdot \frac{l - l_{\mathrm{eq}}}{l^* - l_{\mathrm{eq}}} \right)$$
 
 #### Восстанавливающая сила и коррекция внимания
 
 Силовое воздействие луча рассчитывается как антиградиент потенциала:
 
-$$\vec{F}_{\text{restore}}(l) = -\nabla U(d_{\perp}, l) = \begin{cases} \vec{0}, & d_{\perp} \le R(l) \\ -k_{\text{wall}}(l) \cdot \left( d_{\perp} - R(l) \right) \cdot \dfrac{\vec{h}_{\perp}^{(l)}}{d_{\perp}^{(l)}}, & d_{\perp} > R(l) \end{cases}$$
+$$\vec{F}_{\mathrm{restore}}(l) = -\nabla U(d_{\perp}, l) = \begin{cases} \vec{0}, & d_{\perp} \le R(l) \\ -k_{\mathrm{wall}}(l) \cdot \left( d_{\perp} - R(l) \right) \cdot \frac{\vec{h}_{\perp}^{(l)}}{d_{\perp}^{(l)}}, & d_{\perp} > R(l) \end{cases}$$
 
 Модификация матрицы запросов в механизме внимания:
 
-$$\tilde{q}_t^{(l,h)} = q_{\text{rot}, t}^{(l,h)} + \lambda(l, t_{\text{gen}}) \cdot \omega_{l,h} \cdot \left( \frac{\Vert{}q_{\text{rot}, t}^{(l,h)}\Vert{}_2}{\Vert{}\vec{F}_{\text{restore}}(l)\Vert{}_2 + \epsilon} \right) \vec{F}_{\text{restore}}(l) W_Q^{(l,h)}$$
+$$\tilde{q}_t^{(l,h)} = q_{\mathrm{rot}, t}^{(l,h)} + \lambda(l, t_{\mathrm{gen}}) \cdot \omega_{l,h} \cdot \left( \frac{\Vert{}q_{\mathrm{rot}, t}^{(l,h)}\Vert{}_2}{\Vert{}\vec{F}_{\mathrm{restore}}(l)\Vert{}_2 + \epsilon} \right) \vec{F}_{\mathrm{restore}}(l) W_Q^{(l,h)}$$
 
-где $\lambda(l, t_{\text{gen}}) = \lambda_0 (\exp(-t_{\text{gen}} / \tau_{\text{decay}}) + \lambda_{\text{floor}})$ реализует релаксацию импульса в фазе авторегрессии.
+где $\lambda(l, t_{\mathrm{gen}}) = \lambda_0 (\exp(-t_{\mathrm{gen}} / \tau_{\mathrm{decay}}) + \lambda_{\mathrm{floor}})$ реализует релаксацию импульса в фазе авторегрессии.
 
-### 2.3. Зона 3: Свободный интеллект и логический вывод ($l^* < l \le L_{\text{total}}$)
+### 2.3. Зона 3: Свободный интеллект и логический вывод ($l^* < l \le L_{\mathrm{total}}$)
 
 * **Границы:** от рубежа пластичности $l^*$ до финального слоя классификатора (слои $13 \dots 24$).
 * **Физика:** действие волновода полностью прекращается. Силовое поле и градиенты принудительно обнуляются:
 
-$$\forall l \in [l^* + 1, \; L_{\text{total}}]: \quad \vec{F}_{\text{restore}}(l) \equiv \vec{0}, \quad \lambda(l) \equiv 0$$
+$$\forall l \in [l^* + 1, \; L_{\mathrm{total}}]: \quad \vec{F}_{\mathrm{restore}}(l) \equiv \vec{0}, \quad \lambda(l) \equiv 0$$
 
 Вектор состояния уже спозиционирован в русле целевой предметной области. На заключительных слоях сеть свободно рассчитывает синтаксические конструкции, проверки типов и логические ветвления, сохраняя 100% своего предобученного интеллекта. Лоботомия исключена.
 
@@ -250,9 +268,9 @@ typedef struct alignas(ZAMI_ALIGN_CACHELINE) zami_frame_buffer {
 
 В долговременную память $P_U$ передается вектор экватора, взвешенный обратной энтропией (служебный синтаксис исключается):
 
-$$\vec{h}_{\text{scanout}} = \frac{1}{\sum_{t \in \text{Gen}} w_t + \epsilon} \sum_{t \in \text{Gen}} w_t \cdot h_t^{(l_{\text{eq}})}$$
+$$\vec{h}_{\mathrm{scanout}} = \frac{1}{\sum_{t \in \mathrm{Gen}} w_t + \epsilon} \sum_{t \in \mathrm{Gen}} w_t \cdot h_t^{(l_{\mathrm{eq}})}$$
 
-$$w_t = \max\left( 0.0, \; 1.0 - \frac{H(t)}{H_{\text{threshold}}} \right) \cdot \mathbb{I}(t \notin \text{StopTokens})$$
+$$w_t = \max\left( 0.0, \; 1.0 - \frac{H(t)}{H_{\mathrm{threshold}}} \right) \cdot \mathbb{I}(t \notin \mathrm{StopTokens})$$
 
 ---
 
@@ -262,62 +280,66 @@ $$w_t = \max\left( 0.0, \; 1.0 - \frac{H(t)}{H_{\text{threshold}}} \right) \cdot
 
 До выделения буфера текст проверяется по двухфакторному каскаду:
 
-1. **Индекс технической плотности ($\rho_{\text{tech}}$):**
+1. **Индекс технической плотности ($\rho_{\mathrm{tech}}$):**
 
-$$\rho_{\text{tech}}(D) = \frac{N_{\text{sys}} + 2 \cdot N_{\text{hex\_path}} + 0.3 \cdot N_{\text{syntax}}}{M} \ge 0.08$$
+$$\rho_{\mathrm{tech}}(D) = \frac{N_{\mathrm{sys}} + 2 \cdot N_{\mathrm{hex\_path}} + 0.3 \cdot N_{\mathrm{syntax}}}{M} \ge 0.08$$
 
 
 
-Анализ на C11 выполняется за $< 10$ мкс. При $\rho_{\text{tech}} < 0.08$ кадр немедленно сбрасывается с кодом `ERR_NON_TECHNICAL_PAYLOAD` без запуска нейросети (0 FLOPs).
+Анализ на C11 выполняется за $< 10$ мкс. При $\rho_{\mathrm{tech}} < 0.08$ кадр немедленно сбрасывается с кодом `ERR_NON_TECHNICAL_PAYLOAD` без запуска нейросети (0 FLOPs).
 2. **Барицентрическая аффинность Layer 0:**
 
-$$\Phi_{\text{domain}}(D) = \left\langle \operatorname{Normalize}\left( \frac{1}{M} \sum_{t=1}^M W_E(w_t) \right), \; \vec{C}_{\text{tech\_domain}} \right\rangle \ge 0.72$$
+$$\Phi_{\mathrm{domain}}(D) = \left\langle \frac{\sum_{t=1}^M W_E(w_t)}{\|\sum_{t=1}^M W_E(w_t)\|_2}, \; \vec{C}_{\mathrm{tech\_domain}} \right\rangle \ge 0.72$$
 
 
 
 ### 4.2. Декомпозиция Trunk-and-Branch
 
-При сближении двух каньонов на расстояние $\Vert{}\vec{C}_A - \vec{C}_B\Vert{}_2 < 0.65 (R_A + R_B)$ запускается факторизация через индекс взаимной аффинности:
+При сближении двух каньонов на расстояние $\|\vec{C}_A - \vec{C}_B\|_2 < 0.65 (R_A + R_B)$ запускается факторизация через индекс взаимной аффинности:
 
 $$\mu(\vec{c}_i) = \min\left( \langle \vec{c}_i, \vec{C}_A \rangle, \; \langle \vec{c}_i, \vec{C}_B \rangle \right)$$
 
-$$\begin{cases} \mu(\vec{c}_i) \ge \cos(\theta_{\text{shared}}): & \vec{c}_i \in \mathcal{B}_{\text{common}} \implies \text{Инвариантный Ствол } \mathcal{C}_{\text{trunk}} \\ \mu(\vec{c}_i) < \cos(\theta_{\text{shared}}) \land \vec{c}_i \in \mathcal{C}_A: & \vec{c}_i \in \mathcal{B}_{\Delta A} \implies \text{Дифференциальный рукав } \mathcal{C}_{\Delta A} \\ \mu(\vec{c}_i) < \cos(\theta_{\text{shared}}) \land \vec{c}_i \in \mathcal{C}_B: & \vec{c}_i \in \mathcal{B}_{\Delta B} \implies \text{Дифференциальный рукав } \mathcal{C}_{\Delta B} \end{cases}$$
+$$\begin{cases}
+\mu(\vec{c}_i) \ge \cos(\theta_{\mathrm{shared}}): & \vec{c}_i \in \mathcal{B}_{\mathrm{common}} \implies \text{Инвариантный Ствол } \mathcal{C}_{\mathrm{trunk}} \\
+\mu(\vec{c}_i) < \cos(\theta_{\mathrm{shared}}) \land \vec{c}_i \in \mathcal{C}_A: & \vec{c}_i \in \mathcal{B}_{\Delta A} \implies \text{Дифференциальный рукав } \mathcal{C}_{\Delta A} \\
+\mu(\vec{c}_i) < \cos(\theta_{\mathrm{shared}}) \land \vec{c}_i \in \mathcal{C}_B: & \vec{c}_i \in \mathcal{B}_{\Delta B} \implies \text{Дифференциальный рукав } \mathcal{C}_{\Delta B}
+\end{cases}$$
 
 ### 4.3. Гравитационная аккреция бассейнов (Basin Accretion)
 
 Входящий срез Scanout не создает дубликатов, а притягивается к ближайшему аттрактору:
 
-$$k^* = \arg\max_k \langle \vec{h}^{(l_{\text{eq}})}, \vec{c}_k \rangle$$
+$$k^* = \arg\max_k \langle \vec{h}^{(l_{\mathrm{eq}})}, \vec{c}_k \rangle$$
 
 Условие захвата по динамическому радиусу:
 
-$$\Vert{}\vec{h}^{(l_{\text{eq}})} - \vec{c}_{k^*}\Vert{}_2 \le R_{\text{acc}}(M_{k^*}), \quad R_{\text{acc}}(M) = R_{\text{base}} \cdot \left( 1 + 0.25 \ln(1 + M) \right)^{-\frac{1}{2}}$$
+$$\|\vec{h}^{(l_{\mathrm{eq}})} - \vec{c}_{k^*}\|_2 \le R_{\mathrm{acc}}(M_{k^*}), \quad R_{\mathrm{acc}}(M) = R_{\mathrm{base}} \cdot \left( 1 + 0.25 \ln(1 + M) \right)^{-\frac{1}{2}}$$
 
 При захвате масса аттрактора увеличивается, а барицентр смещается:
 
-$$M_{k^*}^{(t+1)} = M_{k^*}^{(t)} + w_h, \quad \vec{c}_{k^*}^{(t+1)} = \operatorname{Normalize}\left( \vec{c}_{k^*}^{(t)} + \frac{w_h}{M_{k^*}^{(t+1)}} \left( \vec{h}^{(l_{\text{eq}})} - \vec{c}_{k^*}^{(t)} \right) \right)$$
+$$M_{k^*}^{(t+1)} = M_{k^*}^{(t)} + w_h, \quad \vec{c}_{k^*}^{(t+1)} = \frac{\vec{c}_{k^*}^{(t)} + \frac{w_h}{M_{k^*}^{(t+1)}} \left( \vec{h}^{(l_{\mathrm{eq}})} - \vec{c}_{k^*}^{(t)} \right)}{\|\vec{c}_{k^*}^{(t)} + \frac{w_h}{M_{k^*}^{(t+1)}} \left( \vec{h}^{(l_{\mathrm{eq}})} - \vec{c}_{k^*}^{(t)} \right)\|_2}$$
 
 ### 4.4. Емкостной лимит рукавов и топологический митоз
 
-Емкость одного рукава строго ограничена $K_{\text{cap}} = 32$ бассейнами (дескриптор ровно 4 096 байт — страница памяти ОС). При попытке добавления 33-го бассейна:
+Емкость одного рукава строго ограничена $K_{\mathrm{cap}} = 32$ бассейнами (дескриптор ровно 4 096 байт — страница памяти ОС). При попытке добавления 33-го бассейна:
 
-* **Микро-коллапс:** если внутренняя дисперсия $\operatorname{Var}(\mathcal{B}_{\Delta}) < 0.15$, два наиболее близких бассейна объединяются.
+* **Микро-коллапс:** если внутренняя дисперсия $\mathrm{Var}(\mathcal{B}_{\Delta}) < 0.15$, два наиболее близких бассейна объединяются.
 * **Митоз рукава:** если дисперсия $\ge 0.15$, рукав делится гиперплоскостью первой главной компоненты (PCA) на два независимых рукава-сиблинга по 16 бассейнов.
 
 ### 4.5. Термодинамика жизненного цикла и прерывание Cold-Fault
 
 Жизнеспособность рукава описывается термальной энергией:
 
-$$V(b, t) = \sum_{k} \exp\left( -\frac{t - t_k}{\tau_{\text{decay}}} \right), \quad \tau_{\text{decay}} = 48 \text{ часов}$$
+$$V(b, t) = \sum_{k} \exp\left( -\frac{t - t_k}{\tau_{\mathrm{decay}}} \right), \quad \tau_{\mathrm{decay}} = 48 \text{ часов}$$
 
 * При $V(b, t) < 0.05$ рукав эвакуируется в сжатый пул ZFS (`lz4`), а в памяти ствола сохраняется 32-байтный `GhostAnchor`.
-* При повторном запросе по условию $\langle \vec{q}, \vec{C}_{\text{cold}} \rangle \ge \cos(\theta_{\text{wake}})$ вызывается асинхронное прерывание **Cold-Fault** (восстановление страниц пула через `kqueue` за $t < 0.5$ мс).
+* При повторном запросе по условию $\langle \vec{q}, \vec{C}_{\mathrm{cold}} \rangle \ge \cos(\theta_{\mathrm{wake}})$ вызывается асинхронное прерывание **Cold-Fault** (восстановление страниц пула через `kqueue` за $t < 0.5$ мс).
 
 ---
 
 ## 5. Межмодельная миграция (Мост Прокруста)
 
-Миграция топологии $P_U$ между различными моделями ($\mathcal{M}_A \to \mathcal{M}_B$) исключает хранение токенов. На универсальном наборе из $K = 512$ семантических инвариантов $\mathcal{S}_{\text{anchor}}$ строится проекционная матрица Тихонова:
+Миграция топологии $P_U$ между различными моделями ($\mathcal{M}_A \to \mathcal{M}_B$) исключает хранение токенов. На универсальном наборе из $K = 512$ семантических инвариантов $\mathcal{S}_{\mathrm{anchor}}$ строится проекционная матрица Тихонова:
 
 $$W_{A \to B} = \left( \tilde{X}_A^T \tilde{X}_A + \alpha I_{d_A} \right)^{-1} \tilde{X}_A^T \tilde{X}_B \quad \in \mathbb{R}^{d_A \times d_B}$$
 
@@ -359,3 +381,7 @@ $$W_{A \to B} = \left( \tilde{X}_A^T \tilde{X}_A + \alpha I_{d_A} \right)^{-1} \
 
 * ☕ **Поддержать разработку:** `[Вставить ссылку на Ko-fi / Buy Me a Coffee / Boosty]`
 * 🛠 **Стенд разработки:** FreeBSD 14.1-RELEASE / KVM Bare-Metal / Clang 18 / AVX2+FMA
+
+```
+
+```
