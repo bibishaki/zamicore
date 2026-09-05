@@ -8,6 +8,7 @@ authors:
 version: "2.3.0"
 date-released: "2026-09-05"
 license: "BSD-2-Clause"
+doi: "10.5281/zenodo.22313830"
 repository-code: "https://github.com"
 keywords:
   - "deterministic inference"
