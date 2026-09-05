@@ -112,16 +112,24 @@ $L_{\text{eq}}$.
 $$\rho = \vec{u} \cdot \vec{h}_{\text{anchor}}$$
 
 **Ветка когерентности**
+
 $\rho \ge \tau_{\text{bifurcation}}$
+
 Формируется скорректированная координата входа в каньон через сферическую интерполяцию:
+
 $$\vec{h}_{\text{injected}} = \text{normalize}\left((1 - \alpha)\vec{h}_{\text{anchor}} + \alpha \vec{u}\right)$$
 
 **Ветка бифуркации**
+
 $\rho < \tau_{\text{bifurcation}}$):
+
 Вектор
+
 $\vec{h}_{\text{anchor}}$
+
 атомарно фиксируется в реестре ZFS-датасета `attractors`.
 Текущий импульс объявляется новым независимым корнем:
+
 $\vec{h}_{\text{injected}} = \vec{u}$.
 
 #### Фаза 2. Волновод и прокат по каньону (Waveguide Rollout)
