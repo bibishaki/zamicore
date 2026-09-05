@@ -106,8 +106,7 @@ $\vec{u} \in \mathcal{S}^{d-1}$
 $L_{\text{eq}}$.
 
 #### Промежуточный арбитраж ядра (Kernel / Host Arbiter)
-Вектор 
-$\vec{u}$
+Вектор $\vec{u}$
 считывается через zero-copy интерфейс (shared memory / ring buffer) ядром хоста:
 1. Вычисление метрики сродства с текущей закладкой каньона:
 $$\rho = \vec{u} \cdot \vec{h}_{\text{anchor}}$$
