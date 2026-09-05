@@ -40,7 +40,9 @@ Deterministic State-Vector Storage & Inference Architecture
 
 ### 3.2 State Transitions
 * Внутриканьонный сдвиг (NLERP):
+
   h_{t+1} = normalize((1 - α) * h_t + α * u)
+
 * Детекция бифуркации (смена темы):
   - Условие: cos(h_t, u) < THRESHOLD_BIFURCATION (default: ~0.35)
   - Действие: h_t коммитится в снапшот ZFS, VRAM очищается, u становится новым корнем h_0.
@@ -58,6 +60,7 @@ Deterministic State-Vector Storage & Inference Architecture
 * Пропуск прямого прохода: 65% ранних слоев исключаются из инференса при попадании в каньон.
 
 ### 4.2 Cross-Attention as Disk Navigation
+
 * Macro-Routing: α_trunk = softmax( (h * C_trunks^T) / sqrt(d) )
 * Meso-Routing:  α_branch = softmax( (h * C_branches^T) / sqrt(d) )
 * Micro-Routing: α_basin = softmax( (h * C_page32^T) / sqrt(d) ) [Single 4KB Page]
@@ -84,7 +87,10 @@ graph TD
     F --> G["Генерация токенов ответа"]
 
 #### Фаза 1. Съем импульса намерения (Impulse Extraction)
-* **Диапазон:** Слои $0 \to L_{\text{eq}}$ (входные $\approx 65\%$ глубины сети).
+* **Диапазон:** Слои
+*
+* $0 \to L_{\text{eq}}$ (входные $\approx 65\%$ глубины сети).
+*
 * **Входные данные:** Строго токены текущего пользовательского запроса ($N_{\text{new}} \ll N_{\text{history}}$).
 * **Состояние VRAM:** Кристально чистое ($KV_{\text{past}} = \emptyset$). Векторы ключей и значений предыдущих диалогов отсутствуют в памяти ускорителя.
 * **Вычислительная сложность:** Линейная $O(N_{\text{new}})$, задержка прогона составляет доли миллисекунды.
