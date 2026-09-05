@@ -93,10 +93,14 @@ graph TD
 #### Промежуточный арбитраж ядра (Kernel / Host Arbiter)
 Вектор $\vec{u}$ считывается через zero-copy интерфейс (shared memory / ring buffer) ядром хоста:
 1. Вычисление метрики сродства с текущей закладкой каньона:
-   $$\rho = \vec{u} \cdot \vec{h}_{\text{anchor}}$$
+
+$$\rho = \vec{u} \cdot \vec{h}_{\text{anchor}}$$
+
 2. **Ветка когерентности ($\rho \ge \tau_{\text{bifurcation}}$):**
    Формируется скорректированная координата входа в каньон через сферическую интерполяцию:
-   $$\vec{h}_{\text{injected}} = \text{normalize}\left((1 - \alpha)\vec{h}_{\text{anchor}} + \alpha \vec{u}\right)$$
+
+$$\vec{h}_{\text{injected}} = \text{normalize}\left((1 - \alpha)\vec{h}_{\text{anchor}} + \alpha \vec{u}\right)$$
+
 3. **Ветка бифуркации ($\rho < \tau_{\text{bifurcation}}$):**
    * Вектор $\vec{h}_{\text{anchor}}$ атомарно фиксируется в реестре ZFS-датасета `attractors`.
    * Текущий импульс объявляется новым независимым корнем: $\vec{h}_{\text{injected}} = \vec{u}$.
