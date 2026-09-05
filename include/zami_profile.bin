@@ -1,0 +1,33 @@
+#ifndef ZAMI_PROFILE_H
+#define ZAMI_PROFILE_H
+
+#include <stdint.h>
+
+#define ZAMI_PROFILE_MAGIC          0x5A505246U  /* 'ZPRF' */
+#define ZAMI_PROFILE_VERSION        230U         /* v2.3 */
+
+#pragma pack(push, 1)
+
+/* Binary layout of zami_profile.bin */
+typedef struct {
+    uint32_t magic;                  /* 0x5A505246 */
+    uint32_t format_version;         /* 230 */
+    uint32_t total_layers;           /* Total transformer layers L */
+    uint32_t equator_layer;          /* l_eq index */
+    
+    /* Conical Flat-Bottom Geometry Parameters */
+    float r_zero;                    /* Entry radius R_0 */
+    float r_min;                     /* Equator bottleneck radius R_min */
+    float cone_alpha;                /* Geometric compression exponent alpha */
+    float flat_gamma;                /* Restoring force sharpness gamma */
+    
+    /* Dynamic Attenuation Parameters */
+    float lambda_base;               /* Base damping factor */
+    float entropy_threshold;         /* H_limit circuit-breaker trigger */
+    
+    uint8_t checksum_blake3[32];     /* Integrity check of parameter payload */
+} zami_profile_header_t;
+
+#pragma pack(pop)
+
+#endif /* ZAMI_PROFILE_H */
