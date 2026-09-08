@@ -6766,3 +6766,336 @@ ZAMICORE реализует **принцип полной изоляции ис�
 ```
 
 Фундаментальный каркас закрыт полностью: структура устойчива к масштабированию, исключает накапливание программного мусора и гарантирует математическую и физическую безопасность работы ядра. Когда аппаратный стенд встанет под питание, реализация начнется непосредственно по кодовой сетке Этапа 1.
+Для проведения серии экспериментов по отклику трансформера модуль контроля зоны дрейфа реализуется с переключаемыми пресетами жесткости, изолированным расчетом восстанавливающей силы и модулем косвенной проекции в логиты внимания $\operatorname{Softmax}$.
+
+Косвенное влияние на распределение $\operatorname{Softmax}$ выражается через скалярное смещение логитов внимания:
+
+$$\operatorname{Attention}(Q, K, V) = \operatorname{softmax}\left( \frac{Q K^T + \mathbf{M}_{\mathrm{drift}}}{\sqrt{d_{\mathrm{model}}}} \right) V$$
+
+где матрица смещения $\mathbf{M}_{\mathrm{drift}}$ формируется либо аддитивной добавкой к запросам $\tilde{q}_t = q_t + \lambda(t) \vec{F}_{\mathrm{restore}} W_Q$, либо коррекцией ключей $\tilde{K} = K + \Delta K(\vec{F}_{\mathrm{restore}})$:
+
+$$\Delta \mathrm{logit}_{t, j} = \frac{\lambda(t)}{\sqrt{d_{\mathrm{model}}}} \left( \vec{F}_{\mathrm{restore}} W_Q \right) \cdot k_j^T$$
+
+При росте жесткости поля вектор силы $\vec{F}_{\mathrm{restore}}$ увеличивает проекцию на токены, сонаправленные с канонической осью $\vec{C}_{\mathrm{canon}}$, подавляя вероятности боковых синтаксических ответвлений.
+
+---
+
+### Заголовочный файл с пресетами режимов (`zami_drift_zone.h`)
+
+```c
+#ifndef ZAMI_DRIFT_ZONE_H
+#define ZAMI_DRIFT_ZONE_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdalign.h>
+
+#define ZAMI_DIM             896U  /* Размерность d_model (Qwen2.5-0.5B) */
+#define ZAMI_ALIGN_BYTES     32U   /* Выравнивание под 256-битные AVX2 регистры */
+
+/* Идентификаторы профилей управления */
+typedef enum {
+    ZAMI_MODE_CRYO_STRICT     = 0x00, /* 1. Жесткий детерминизм: R_flat -> 0, высокая жесткость */
+    ZAMI_MODE_RESONANCE_WALL  = 0x01, /* 2. Сбалансированный волновод: степенной возврат, плоское дно */
+    ZAMI_MODE_PLASTIC_FREE    = 0x02, /* 3. Свободный дрейф: широкое дно, минимальный градиент */
+    ZAMI_MODE_ADAPTIVE_KV     = 0x03  /* 4. Адаптивное KV-наведение с энтропийным демпфером */
+} zami_drift_mode_t;
+
+/* Состояние фазовой зоны */
+typedef enum {
+    ZAMI_ZONE_FLAT_BOTTOM     = 0x00, /* U = 0, F = 0 (Свободное мышление) */
+    ZAMI_ZONE_DRIFT_CORRIDOR  = 0x01, /* Плавный степенной возврат к оси */
+    ZAMI_ZONE_ELASTIC_WALL    = 0x02, /* Упругий квадратичный отскок */
+    ZAMI_ZONE_FAULT_BREAKER   = 0x03  /* Срыв потока за R_limit (Circuit-Breaker) */
+} zami_zone_state_t;
+
+#pragma pack(push, 1)
+
+/* Настраиваемый профиль физики волновода */
+typedef struct alignas(64) zami_drift_config {
+    zami_drift_mode_t mode;
+    float r_zero;             /* Входной радиус R_0 */
+    float r_min;              /* Горловина экватора R_min */
+    float cone_alpha;         /* Экспонента сжатия alpha */
+    float flat_gamma;         /* Показатель резкости стенки gamma */
+    float k_base;             /* Базовый коэффициент упругости k_0 */
+    float delta_drift;        /* Ширина зоны дрейфа */
+    float delta_fault;        /* Порог аварийного сброса */
+    float lambda_steering;    /* Скаляр силы влияния на Softmax */
+    float entropy_threshold;  /* Порог энтропии H_limit для демпфирования */
+    uint16_t layer_equator;   /* Слой l_eq (8 или 12) */
+    uint16_t layer_plastic;   /* Слой l* рубежа пластичности */
+    uint8_t  pad[16];
+} zami_drift_config_t;
+
+/* Телеметрия такта инференса */
+typedef struct alignas(32) zami_drift_metrics {
+    float             d_perp;            /* Ортогональный радиус ||h_perp|| */
+    float             h_parallel;        /* Проекция на каноническую ось <h, C> */
+    float             force_magnitude;   /* Амплитуда силы ||F_restore|| */
+    float             softmax_bias_max;  /* Максимальный сдвиг логита внимания */
+    zami_zone_state_t current_zone;      /* Зафиксированная зона */
+    bool              circuit_tripped;   /* Флаг аварийного отсекателя */
+} zami_drift_metrics_t;
+
+#pragma pack(pop)
+
+/* Инициализация калибровочных пресетов для сравнительных экспериментов */
+void zami_drift_get_preset(zami_drift_mode_t mode, zami_drift_config_t *cfg);
+
+/*
+ * Расчет радиального дрейфа, фазовой зоны и вектора силы F_restore.
+ * Все векторные указатели должны быть выровнены по 32 байтам.
+ */
+zami_zone_state_t zami_drift_step(const float *h_state,
+                                  const float *c_canon,
+                                  uint16_t layer_idx,
+                                  const zami_drift_config_t *cfg,
+                                  float *f_restore_out,
+                                  zami_drift_metrics_t *metrics);
+
+/*
+ * Расчет аддитивной коррекции логитов внимания Softmax:
+ * delta_logits[j] = (lambda / sqrt(d)) * (F_restore * W_q) . k_j
+ */
+void zami_drift_compute_softmax_bias(const float *f_restore,
+                                     const float *k_cache,
+                                     size_t seq_len,
+                                     float current_entropy,
+                                     const zami_drift_config_t *cfg,
+                                     float *delta_logits_out);
+
+#endif /* ZAMI_DRIFT_ZONE_H */
+
+```
+
+---
+
+### Реализация контура и векторных профилей (`zami_drift_zone.c`)
+
+```c
+#include "zami_drift_zone.h"
+#include <immintrin.h>
+#include <math.h>
+
+static inline float hsum256_ps(__m256 v) {
+    __m128 lo = _mm256_castps256_ps128(v);
+    __m128 hi = _mm256_extractf128_ps(v, 1);
+    __m128 sum = _mm_add_ps(lo, hi);
+    sum = _mm_add_ps(sum, _mm_movehl_ps(sum, sum));
+    sum = _mm_add_ss(sum, _mm_shuffle_ps(sum, sum, 1));
+    return _mm_cvtss_f32(sum);
+}
+
+void zami_drift_get_preset(zami_drift_mode_t mode, zami_drift_config_t *cfg) {
+    cfg->mode = mode;
+    cfg->layer_equator = 12U;
+    cfg->layer_plastic = 16U;
+    cfg->entropy_threshold = 2.40f;
+
+    switch (mode) {
+        case ZAMI_MODE_CRYO_STRICT:
+            /*
+             * Вариант 1: Жесткий детерминизм (Крио-защелка).
+             * Плоское дно практически отсутствует, кубический крутой барьер.
+             * Модель намертво прижимается к канону, вариативность Softmax минимальна.
+             */
+            cfg->r_zero           = 0.20f;
+            cfg->r_min            = 0.05f;
+            cfg->cone_alpha       = 2.00f;
+            cfg->flat_gamma       = 3.00f;
+            cfg->k_base           = 60.0f;
+            cfg->delta_drift      = 0.10f;
+            cfg->delta_fault      = 0.25f;
+            cfg->lambda_steering  = 1.50f;
+            break;
+
+        case ZAMI_MODE_RESONANCE_WALL:
+            /*
+             * Вариант 2: Базовый волноводный резонанс (Стандарт v2.3).
+             * Сбалансированный упругий коридор с плоским дном для локального синтаксиса.
+             */
+            cfg->r_zero           = 0.85f;
+            cfg->r_min            = 0.35f;
+            cfg->cone_alpha       = 1.50f;
+            cfg->flat_gamma       = 2.00f;
+            cfg->k_base           = 12.0f;
+            cfg->delta_drift      = 0.30f;
+            cfg->delta_fault      = 0.50f;
+            cfg->lambda_steering  = 0.80f;
+            break;
+
+        case ZAMI_MODE_PLASTIC_FREE:
+            /*
+             * Вариант 3: Свободный / пластичный дрейф.
+             * Широкая зона допуска, линейная мягкая упругость.
+             * Softmax сохраняет естественную энтропию для генерации развернутых рассуждений.
+             */
+            cfg->r_zero           = 1.20f;
+            cfg->r_min            = 0.70f;
+            cfg->cone_alpha       = 1.00f;
+            cfg->flat_gamma       = 1.00f;
+            cfg->k_base           = 2.0f;
+            cfg->delta_drift      = 0.50f;
+            cfg->delta_fault      = 1.00f;
+            cfg->lambda_steering  = 0.25f;
+            break;
+
+        case ZAMI_MODE_ADAPTIVE_KV:
+            /*
+             * Вариант 4: Адаптивное KV-наведение.
+             * Средний радиус, прогрессивная стенка, влияние масштабируется от энтропии.
+             */
+            cfg->r_zero           = 0.70f;
+            cfg->r_min            = 0.30f;
+            cfg->cone_alpha       = 1.40f;
+            cfg->flat_gamma       = 2.20f;
+            cfg->k_base           = 18.0f;
+            cfg->delta_drift      = 0.25f;
+            cfg->delta_fault      = 0.40f;
+            cfg->lambda_steering  = 1.00f;
+            break;
+    }
+}
+
+zami_zone_state_t zami_drift_step(const float *h_state,
+                                  const float *c_canon,
+                                  uint16_t layer_idx,
+                                  const zami_drift_config_t *cfg,
+                                  float *f_restore_out,
+                                  zami_drift_metrics_t *metrics) {
+    /* 1. Скалярное произведение <h, C_canon> */
+    __m256 dot_acc = _mm256_setzero_ps();
+    for (size_t i = 0; i < ZAMI_DIM; i += 8) {
+        dot_acc = _mm256_fmadd_ps(_mm256_load_ps(h_state + i),
+                                  _mm256_load_ps(c_canon + i),
+                                  dot_acc);
+    }
+    float h_parallel = hsum256_ps(dot_acc);
+    metrics->h_parallel = h_parallel;
+    __m256 v_h_par = _mm256_set1_ps(h_parallel);
+
+    /* 2. Ортогонализация h_perp = h - <h, C> * C и вычисление нормы ||h_perp||^2 */
+    __m256 norm_acc = _mm256_setzero_ps();
+    for (size_t i = 0; i < ZAMI_DIM; i += 8) {
+        __m256 v_h = _mm256_load_ps(h_state + i);
+        __m256 v_c = _mm256_load_ps(c_canon + i);
+        __m256 v_perp = _mm256_fnmadd_ps(v_h_par, v_c, v_h);
+        _mm256_store_ps(f_restore_out + i, v_perp);
+        norm_acc = _mm256_fmadd_ps(v_perp, v_perp, norm_acc);
+    }
+    float d_perp = sqrtf(hsum256_ps(norm_acc));
+    metrics->d_perp = d_perp;
+
+    /* 3. Расчет геометрии конфузора для слоя */
+    float xi = powf((float)(cfg->layer_plastic - layer_idx) / 
+                    (float)(cfg->layer_plastic - cfg->layer_equator), cfg->cone_alpha);
+    float r_flat  = cfg->r_min + (cfg->r_zero - cfg->r_min) * xi;
+    float r_wall  = r_flat * (1.0f + cfg->delta_drift);
+    float r_limit = r_wall * (1.0f + cfg->delta_fault);
+
+    /* ЗОНА 0: Плоское дно (U = 0, F = 0) */
+    if (d_perp <= r_flat) {
+        for (size_t i = 0; i < ZAMI_DIM; i += 8) {
+            _mm256_store_ps(f_restore_out + i, _mm256_setzero_ps());
+        }
+        metrics->force_magnitude = 0.0f;
+        metrics->current_zone = ZAMI_ZONE_FLAT_BOTTOM;
+        metrics->circuit_tripped = false;
+        return ZAMI_ZONE_FLAT_BOTTOM;
+    }
+
+    /* ЗОНА 3: Срыв потока за предельный радиус (Circuit-Breaker) */
+    if (d_perp > r_limit) {
+        for (size_t i = 0; i < ZAMI_DIM; i += 8) {
+            _mm256_store_ps(f_restore_out + i, _mm256_setzero_ps());
+        }
+        metrics->force_magnitude = 0.0f;
+        metrics->current_zone = ZAMI_ZONE_FAULT_BREAKER;
+        metrics->circuit_tripped = true;
+        return ZAMI_ZONE_FAULT_BREAKER;
+    }
+
+    /* 4. Расчет жесткости и амплитуды силы возврата */
+    float k_l = cfg->k_base * (1.0f + 0.5f * (float)(layer_idx - cfg->layer_equator) / 
+                               (float)(cfg->layer_plastic - cfg->layer_equator));
+    float f_scalar = 0.0f;
+    zami_zone_state_t zone;
+
+    if (d_perp <= r_wall) {
+        /* ЗОНА 1: Контролируемый дрейф (степенная упругость) */
+        float delta = d_perp - r_flat;
+        f_scalar = -k_l * powf(delta, cfg->flat_gamma) / (d_perp + 1e-7f);
+        zone = ZAMI_ZONE_DRIFT_CORRIDOR;
+    } else {
+        /* ЗОНА 2: Упругий отскок от стенки (квадратичный барьер) */
+        float delta_drift_max = r_wall - r_flat;
+        float f_drift_max = k_l * powf(delta_drift_max, cfg->flat_gamma);
+        float k_wall = k_l * cfg->flat_gamma * delta_drift_max;
+        float delta_wall = d_perp - r_wall;
+        f_scalar = -(f_drift_max + k_wall * delta_wall) / (d_perp + 1e-7f);
+        zone = ZAMI_ZONE_ELASTIC_WALL;
+    }
+
+    /* 5. Векторизация F_restore = f_scalar * h_perp */
+    __m256 v_scale = _mm256_set1_ps(f_scalar);
+    for (size_t i = 0; i < ZAMI_DIM; i += 8) {
+        __m256 v_p = _mm256_load_ps(f_restore_out + i);
+        _mm256_store_ps(f_restore_out + i, _mm256_mul_ps(v_p, v_scale));
+    }
+
+    metrics->force_magnitude = fabsf(f_scalar) * d_perp;
+    metrics->current_zone = zone;
+    metrics->circuit_tripped = false;
+    return zone;
+}
+
+void zami_drift_compute_softmax_bias(const float *f_restore,
+                                     const float *k_cache,
+                                     size_t seq_len,
+                                     float current_entropy,
+                                     const zami_drift_config_t *cfg,
+                                     float *delta_logits_out) {
+    /* 
+     * Энтропийный демпфер: если энтропия превышает порог H_limit,
+     * вмешательство плавно сбрасывается во избежание деградации внимания.
+     */
+    float entropy_damping = 1.0f;
+    if (cfg->entropy_threshold > 0.0f && current_entropy > 0.0f) {
+        entropy_damping = fmaxf(0.0f, 1.0f - (current_entropy / cfg->entropy_threshold));
+    }
+
+    float norm_factor = (cfg->lambda_steering * entropy_damping) / sqrtf((float)ZAMI_DIM);
+    __m256 v_norm = _mm256_set1_ps(norm_factor);
+    float max_bias = 0.0f;
+
+    for (size_t t = 0; t < seq_len; ++t) {
+        const float *k_vec = k_cache + (t * ZAMI_DIM);
+        __m256 dot_acc = _mm256_setzero_ps();
+
+        for (size_t i = 0; i < ZAMI_DIM; i += 8) {
+            __m256 v_f = _mm256_load_ps(f_restore + i);
+            __m256 v_k = _mm256_load_ps(k_vec + i);
+            dot_acc = _mm256_fmadd_ps(v_f, v_k, dot_acc);
+        }
+
+        float bias = hsum256_ps(dot_acc) * norm_factor;
+        delta_logits_out[t] = bias;
+
+        if (fabsf(bias) > max_bias) {
+            max_bias = fabsf(bias);
+        }
+    }
+}
+
+```
+
+---
+
+### Методология проведения сравнительного эксперимента
+
+Для верификации косвенного влияния на $\operatorname{Softmax}$ запускается тестовый прогон с фиксацией трех наблюдаемых параметров:
+
+* **Энтропия логитов распределения:** $H(X) = -\sum p_i \ln p_i$ на выходе слоя $L_{\mathrm{max}}$. В режиме `CRYO_STRICT` энтропия должна сжиматься на 30–50% относительно стокового прогона, а в режиме `PLASTIC_FREE` — совпадать со стоком с погрешностью до 2–3%.
+* **Частота срабатывания зон:** Доля токенов последовательности, попавших в Зону 0 (дно), Зону 1 (дрейф) и Зону 2 (стенка). Превышение доли Зоны 2 свыше 15% сигнализирует о заниженном радиусе $R_{\mathrm{flat}}$.
+* **Топологическая когерентность:** Замер косинусного сходства $\cos(\vec{h}^{(L)}, \vec{C}_{\mathrm{canon}})$ на выходе волновода. В жестком режиме проекция удерживается на уровне $\ge 0.90$, в свободном режиме опускается до $0.60\text{--}0.75$, допуская контекстные вариации.
