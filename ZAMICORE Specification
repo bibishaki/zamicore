@@ -1,0 +1,1103 @@
+# ZAMICORE Specification: Архитектурный манифест детерминированного когнитивного ядра
+
+---
+
+## 1. Архитектурный базис и концепция суверенного когнитивного ядра
+
+Архитектура ZAMICORE устраняет фундаментальный порок современных систем автономных агентов — монополизацию интеллекта единой стохастической нейросетью. Традиционные LLM объединяют функции долговременной памяти, логического рассуждения, фактологической базы и генерации синтаксиса в недифференцированном объеме весов. При таком подходе невозможно гарантировать повторяемость, детерминизм решений и сохранение опыта при смене базовой модели.
+
+ZAMICORE реализует кибернетическое разделение субъектности и вычислительных органов:
+
+* **Субъект интеллекта (Ядро ZAMICORE):** Детерминированная операционная среда под управлением FreeBSD 15.1, включающая неизменяемую 4-квадрантную память OpenZFS, причинно-следственные графы, аналитический узел доказательства теорем и конечный автомат (FSM), оперирующий семью фундаментальными примитивами.
+* **Периферийный сенсорно-речевой орган (LLM-кодек):** Сменная языковая модель (на этапе развертывания — квантованная архитектура Qwen2.5-0.5B), препарированная через контрольные срезы внутренних слоев. Модель сведена к трем изолированным служебным функциям:
+1. *Первичный сенсорный рупор:* Сворачивание внешнего стимула в скрытое фазовое пространство.
+2. *Эпистемический валидатор многообразия:* Измерение кривизны и топологического напряжения при интерференции векторов.
+3. *Речевой резонатор:* Синтаксическая развертка стабилизированного гештальта в текст.
+
+
+
+```
+                  ┌────────────────────────────────────────┐
+                  │      ZAMICORE COGNITIVE CORE (OS)      │
+                  │  Твердая память OpenZFS, онтология Q1, │
+                  │  Merkle-DAG, FSM, 7 микро-примитивов   │
+                  └───────────────────┬────────────────────┘
+                                      │
+                   [ ШИНА: КОГНИТИВНЫЙ БУФЕР КАДРА ] (zami_frame_t)
+                   (Двойная буферизация Front/Back, Zero-Copy)
+                                      │
+  ════════════════════════════════════╪════════════════════════════════════
+                     СТАНДАРТНЫЙ НЕЙРОСЕТЕВОЙ СОКЕТ (ABI)
+  ════════════════════════════════════╪════════════════════════════════════
+                                      │
+          ┌───────────────────────────┴───────────────────────────┐
+          ▼                                                       ▼
+  [ СЕНСОРНЫЙ РУПОР ]                                     [ РЕЧЕВОЙ РЕЗОНАТОР ]
+  Слои 0..11 трансформера                                Слои 13..24 трансформера
+  Съем скрытого вектора u_raw                             Синтаксическая развертка ответа
+          │                                                       ▲
+          └───────────────────────────┬───────────────────────────┘
+                                      │
+                         [ ШЛЮЗ ВОЛНОВОДА: СЛОЙ 12 ]
+                         Фазовая инжекция барицентров
+                         Контроль кривизны Delta E
+
+```
+
+---
+
+## 2. Физический уровень хранения и 4-квадрантная топология OpenZFS
+
+Вся персистентная и оперативная память ZAMICORE квантуется строго фиксированными блоками — **стратами (Strata)** размером 4096 байт. Размер страта аппаратно согласован с физическим сектором накопителей NVMe Advanced Format 4Kn и параметром пула OpenZFS `ashift=12`.
+
+Работа с физическим накопителем осуществляется через системные вызовы `pread(2)` и `pwrite(2)` с флагом `O_DIRECT`. Кэш страниц операционной системы исключается из контура ввода-вывода; выравнивание буферов в оперативной памяти строго кратно 4096 байтам (`posix_memalign`).
+
+```
+  0x0000 ┌─────────────────────────────────────────────────────────────┐
+         │ ЗАГОЛОВОК СТРАТА (64 байта):                                │
+         │ • CRC32C заголовка (SSE4.2, 4 байта)                        │
+         │ • Флаги квадранта и типа полезной нагрузки (4 байта)        │
+         │ • Уникальный 64-битный stratum_id (8 байт)                  │
+         │ • Временная метка кристаллизации timestamp_ns (8 байт)      │
+         │ • Счетчик обращений / вес консолидации (8 байт)             │
+         │ • Merkle Parent Hash (SHA-256 CoW-дерева, 32 байта)         │
+  0x0040 ├─────────────────────────────────────────────────────────────┤
+         │ ПОЛЕЗНАЯ НАГРУЗКА СТРАТА (4032 байта, строго типизирована): │
+         │                                                             │
+         │ [FLAG_CONCEPT]  ──► Смысловой Хаб (Барицентры и роли)       │
+         │ [FLAG_ACTION]   ──► Граф Действий (Массив опкодов сценария) │
+         │ [FLAG_ANALYTIC] ──► Узел Доказательств (Байесовские веса)   │
+         │ [FLAG_GESTALT]  ──► Мета-Индекс (Bounding Volume R^896)     │
+  0x1000 └─────────────────────────────────────────────────────────────┘
+
+```
+
+### 2.1. Топология 4 квадрантов
+
+Память организована в виде ортогональной матрицы разделения субъективности и персистентности:
+
+| Квадрант | Среда хранения | Политика ввода-вывода | Назначение |
+| --- | --- | --- | --- |
+| **Q1 (ZAMI Core)** | NVMe / ZFS Pool `zroot/zamicore/strata/core` | Read-Only при диалоге. Запись только при транзакционной CoW-кристаллизации. | Объективный инвариантный опыт, семантические хабы, аксиомы, проверенные сценарии. |
+| **Q2 (User Profile)** | NVMe / ZFS Pool `zroot/zamicore/strata/users` | Append-Only вехи сессий, CoW-версионирование. | Субъективная модель оператора, специфика формулировок, личные прецеденты взаимодействия. |
+| **Q3 (ZAMI Scratchpad)** | DRAM / FreeBSD `shm_open(2)` | Zero-Copy, циклическая перезапись в рамках такта. | Теневые вычисления волновода, расчет невязок $\vec{r}$, пробная фазовая инжекция. |
+| **Q4 (Session Stream)** | DRAM / FreeBSD Ring Buffer | Экспоненциальное затухание следа (Decay). | Сырой контекстный поток текущего диалога, стираемый при завершении сессии. |
+
+### 2.2. Заголовочный файл спецификации страта (`zamicore_stratum.h`)
+
+```c
+#ifndef ZAMICORE_STRATUM_H
+#define ZAMICORE_STRATUM_H
+
+#include <stdint.h>
+#include <stddef.h>
+#include <assert.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define ZAMI_STRATUM_SIZE       4096U
+#define ZAMI_HEADER_SIZE        64U
+#define ZAMI_PAYLOAD_SIZE       4032U
+#define ZAMI_QWEN_DIM           896U
+
+#define ZAMI_FLAG_QUADRANT_Q1   0x0001U
+#define ZAMI_FLAG_QUADRANT_Q2   0x0002U
+#define ZAMI_FLAG_QUADRANT_Q3   0x0004U
+#define ZAMI_FLAG_QUADRANT_Q4   0x0008U
+
+#define ZAMI_FLAG_CONCEPT_HUB   0x0100U
+#define ZAMI_FLAG_ACTION_NODE   0x0200U
+#define ZAMI_FLAG_ANALYTIC_NODE 0x0400U
+#define ZAMI_FLAG_GESTALT_NODE  0x0800U
+
+#pragma pack(push, 1)
+
+typedef struct zami_stratum_header {
+    uint32_t header_crc32;
+    uint16_t flags;
+    uint16_t generation;
+    uint64_t stratum_id;
+    uint64_t timestamp_ns;
+    uint64_t access_counter;
+    uint8_t  parent_hash[32];
+} zami_stratum_header_t;
+
+typedef struct zami_stratum {
+    zami_stratum_header_t header;
+    uint8_t               payload[ZAMI_PAYLOAD_SIZE];
+} zami_stratum_t;
+
+#pragma pack(pop)
+
+static_assert(sizeof(zami_stratum_header_t) == 64,
+              "FATAL: zami_stratum_header_t обязана занимать ровно 64 байта");
+static_assert(sizeof(zami_stratum_t) == 4096,
+              "FATAL: zami_stratum_t обязана занимать ровно 4096 байт");
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMICORE_STRATUM_H */
+
+```
+
+---
+
+## 3. Каталог семи элементарных примитивов ядра
+
+Внутреннее состояние системы модифицируется исключительно через каталог из 7 базовых примитивов с детерминированной асимптотической сложностью:
+
+```
+  [1. PRIM_STRATUM_IO]   ──► Прямой O_DIRECT блочный обмен с NVMe (4096B, O(1))
+  [2. PRIM_SEAL_CRC]     ──► Аппаратный расчет CRC32C через SSE4.2 (O(1))
+  [3. PRIM_VEC_METRIC]   ──► Скалярное произведение и евклидова норма AVX2 (O(1))
+  [4. PRIM_BARYCENTER]   ──► Потоковое вычисление центроида векторов AVX2 (O(M))
+  [5. PRIM_TENSION]      ──► Измерение топологического сопротивления Delta E (O(1))
+  [6. PRIM_FRAME_FLIP]   ──► Атомарный переброс указателей Front/Back Buffer (O(1))
+  [7. PRIM_GRAPH_HOP]    ──► Разрешение 64-битного адреса страта в DRAM-атласе (O(1))
+
+```
+
+1. **`PRIM_STRATUM_IO`:** Прямое чтение или запись страта через `pread(2)`/`pwrite(2)` с дескриптором `O_DIRECT`. Запрещает использование промежуточных буферов ОС.
+2. **`PRIM_SEAL_CRC`:** Вычисление аппаратной контрольной суммы заголовка страта с использованием инструкции SSE4.2 `_mm_crc32_u64`.
+3. **`PRIM_VEC_METRIC`:** Расчет косинусного сходства $\cos(\vec{u}, \vec{v})$ и евклидова расстояния $\lVert \vec{u} - \vec{v} \rVert_2$ с использованием 256-битных инструкций AVX2 и FMA.
+4. **`PRIM_BARYCENTER`:** Суммирование и взвешивание пакета векторов в 896-мерном пространстве с нормировкой на суммарную массу.
+5. **`PRIM_TENSION`:** Расчет невязки между целевым направлением волновода и реальным откликом модели:
+
+$$\Delta E = \lVert \vec{u}_{\text{settled}} - \vec{u}_{\text{target}} \rVert_2$$
+
+
+6. **`PRIM_FRAME_FLIP`:** Атомарный обмен указателей между теневым буфером кадра (Back Buffer) и активным (Front Buffer) через `atomic_exchange`.
+7. **`PRIM_GRAPH_HOP`:** Переход по графовому ребру через прямое чтение индекса в хеш-таблице резидентных стратов оперативной памяти.
+
+---
+
+## 4. Физика волновода, интерферометрия и топологическое напряжение многообразия
+
+Взаимодействие ядра с нейросетевым кодеком реализуется через трехточечный интерферометр на срезах слоев $L_{11}$, $L_{12}$ и $L_{13}$.
+
+```
+                 СЕНСОРНЫЙ ВХОД (Слои 0..11)
+                              │
+                              ▼
+        [ ЗОНД T_1 (Срез L11) ] ──► Снятие сырого стимула u_raw
+                              │
+                              ▼
+  ═══════════════════════════════════════════════════════════════════
+        [ ИНЖЕКТОР I (Срез L12) ] ──► Фазовое наведение вектора:
+        u_target = u_raw + (1 / T_inj) * (Barycenter - u_raw)
+  ═══════════════════════════════════════════════════════════════════
+                              │
+                              ▼
+        [ ЗОНД T_2 (Срез L13) ] ──► Снятие релаксации u_settled
+                              │
+                              ▼
+        [ ИНТЕРФЕРОМЕТР AVX2 ] ──► Расчет напряжения Delta E:
+        Delta E = || u_settled - u_target ||_2
+
+```
+
+1. **Зонд съема $T_1$ (Слой 11):** Извлекает скрытый вектор состояния $\vec{u}_{\text{raw}} \in \mathbb{R}^{896}$ до прохождения экватора семантической плотности.
+2. **Шлюз фазовой инжекции $I$ (Слой 12):** В скрытое состояние трансформера принудительно вносится волновой фронт опорного барицентра долговременной памяти $\vec{B}$:
+
+$$\vec{u}_{\text{target}} = \vec{u}_{\text{raw}} + \frac{1}{T_{\text{inj}}} (\vec{B} - \vec{u}_{\text{raw}})$$
+
+
+
+где $T_{\text{inj}}$ — температура инжекции.
+3. **Зонд контроля релаксации $T_2$ (Слой 13):** Фиксирует реальное состояние $\vec{u}_{\text{settled}}$ после прохождения слоя прямого распространения (Feed-Forward Network).
+4. **Крио-защелка ($T_{\text{inj}} \to 0$):** Температура наведения устремляется к нулю, принудительно фиксируя состояние скрытого слоя в значении опорного барицентра. Режим используется для выполнения системных команд ядра, операций ввода-вывода и строгих логических переходов.
+5. **Пластичный режим ($T_{\text{inj}} \approx 1.0 \dots 1.5$):** Обеспечивает свободную речевую модуляцию без утери семантического русла.
+
+---
+
+## 5. Когнитивный Буфер Кадра (Cognitive Frame Buffer)
+
+Тактовой единицей мышления ZAMICORE является **Когнитивный Кадр (Frame)**, оформленный структурой `zami_frame_t` фиксированного размера 4096 байт. Буфер кадра реализует двойную буферизацию (Double Buffering) в выделенной разделяемой памяти.
+
+```c
+#ifndef ZAMI_FRAME_BUFFER_H
+#define ZAMI_FRAME_BUFFER_H
+
+#include "zamicore_stratum.h"
+#include <stdatomic.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#pragma pack(push, 1)
+
+typedef struct zami_frame {
+    /* Геометрия волновода кадра (896 float x 4 байта = 3584 байта) */
+    float    stimulus_raw[ZAMI_QWEN_DIM / 2];    /* 448 float = 1792B */
+    float    target_injected[ZAMI_QWEN_DIM / 2]; /* 448 float = 1792B */
+
+    /* Телеметрия кадра (64 байта) */
+    float    manifold_tension;                   /* Зафиксированное напряжение Delta E */
+    float    injection_temp;                     /* Рабочая температура T_inj */
+    uint64_t frame_index;                        /* Порядковый номер такта мышления */
+    uint64_t timestamp_ns;                       /* Системное время такта */
+    uint32_t active_gestalt_id;                  /* ID активного гештальта */
+    uint32_t flags;                              /* Состояние кадра: VALID, DIRTY, VETO */
+    uint8_t  telemetry_pad[32];
+
+    /* Навигационный контекст (384 байта) */
+    uint64_t active_strata_refs[32];             /* 256 байт: привязанные страты Q1 */
+    int16_t  strata_weights[32];                 /* 64 байта: веса релевантности */
+    uint8_t  frame_reserved[64];                 /* Выравнивание до 4096 байт */
+} zami_frame_t;
+
+#pragma pack(pop)
+
+static_assert(sizeof(zami_frame_t) == 4096,
+              "FATAL: zami_frame_t обязана занимать ровно 4096 байт");
+
+typedef struct zami_frame_pipeline {
+    zami_frame_t  frames[2];
+    atomic_uint   front_index;
+} zami_frame_pipeline_t;
+
+static inline zami_frame_t* zami_get_back_buffer(zami_frame_pipeline_t *pipe) {
+    unsigned int front = atomic_load_explicit(&pipe->front_index, memory_order_relaxed);
+    return &pipe->frames[1 - front];
+}
+
+static inline zami_frame_t* zami_get_front_buffer(zami_frame_pipeline_t *pipe) {
+    unsigned int front = atomic_load_explicit(&pipe->front_index, memory_order_acquire);
+    return &pipe->frames[front];
+}
+
+static inline void zami_frame_flip(zami_frame_pipeline_t *pipe) {
+    unsigned int front = atomic_load_explicit(&pipe->front_index, memory_order_relaxed);
+    atomic_store_explicit(&pipe->front_index, 1 - front, memory_order_release);
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_FRAME_BUFFER_H */
+
+```
+
+### 5.1. Эпистемический V-Sync
+
+Кадр формируется, векторизуется и верифицируется исключительно в теневом буфере (Back Buffer). Атомарный переброс (`zami_frame_flip`) на активный Front Buffer для выдачи наружу или исполнения разрешен только при условии, что измеренное фазовое напряжение $\Delta E$ не превышает порога $\tau_{\text{tension}}$. При обнаружении диссонанса кадр сбрасывается без побочных эффектов.
+
+---
+
+## 6. Онтология смыслов: Барицентры, Смысловые Хабы и Гештальты
+
+В ZAMICORE механизм динамического внимания трансформера заменен статической выборкой барицентрических пар:
+
+* **Key (Ключ):** Направляющий вектор смыслового хаба $\vec{C}_k \in \mathbb{R}^{896}$.
+* **Value (Значение):** Опорный инвариантный барицентр $\vec{B}_k \in \mathbb{R}^{896}$, запечатанный в 4KB-страте.
+
+```c
+#ifndef ZAMI_CONCEPT_HUB_H
+#define ZAMI_CONCEPT_HUB_H
+
+#include "zamicore_stratum.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define ZAMI_ROLE_DEFINITION   0x0001U /* Сущностное определение понятия */
+#define ZAMI_ROLE_SYMPTOM      0x0002U /* Контекстный маркер запроса */
+#define ZAMI_ROLE_FAST_RECIPE  0x0003U /* Готовый вектор шортката инжекции */
+#define ZAMI_ROLE_ANTITHESIS   0x0004U /* Контрпример, граница применимости */
+#define ZAMI_ROLE_CONSEQUENCE  0x0005U /* Направленный логический переход */
+
+#pragma pack(push, 1)
+
+typedef struct zami_concept_hub_payload {
+    int8_t   hub_barycenter[ZAMI_QWEN_DIM];      /* 896 байт: центроид кластера (INT8) */
+    uint64_t bound_strata[48];                   /* 384 байта: ссылки на связанные страты */
+    uint16_t strata_roles[48];                   /* 96 байт: семантические роли связей */
+    int16_t  strata_weights[48];                 /* 96 байт: веса связей (Fixed Q8.8) */
+    char     concept_tag[64];                    /* 64 байта: символьный тег */
+    uint8_t  reserved[2496];                     /* Выравнивание до 4032 байт */
+} zami_concept_hub_payload_t;
+
+#pragma pack(pop)
+
+static_assert(sizeof(zami_concept_hub_payload_t) == 4032,
+              "FATAL: zami_concept_hub_payload_t обязана занимать ровно 4032 байта");
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_CONCEPT_HUB_H */
+
+```
+
+### 6.1. Синтез динамического Гештальта ($\vec{G}$)
+
+Для передачи произвольного объема контекста в резонатор модели не требуется раздувать контекстное окно токенов. Оркестратор производит векторное сложение барицентров активированных хабов с весами релевантности $\lambda_k$:
+
+
+$$\vec{G} = \sum_{k=1}^{M} \lambda_k \vec{B}_k, \quad \sum_{k=1}^{M} \lambda_k = 1.0$$
+
+
+Полученный гештальт $\vec{G}$ инжектируется в волновод как монолитный волновой фронт за один такт.
+
+---
+
+## 7. Причинно-следственный граф действий (Causal Action DAG)
+
+Для исполнения процедурных сценариев («Как сделать X») используется граф действий, в котором каждый узел упакован в страт с флагом `ZAMI_FLAG_ACTION_NODE`. Узел кодирует детерминированную триаду причинно-следственного перехода:
+
+$$\vec{B}_{\text{pre}} \xrightarrow{\quad \text{Оператор ядра } \Delta\vec{h} \quad} \vec{B}_{\text{post}}$$
+
+```c
+#ifndef ZAMI_ACTION_DAG_H
+#define ZAMI_ACTION_DAG_H
+
+#include "zamicore_stratum.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#pragma pack(push, 1)
+
+typedef struct zami_action_payload {
+    int8_t   precondition_barycenter[ZAMI_QWEN_DIM];  /* 896 байт: вектор требуемого состояния */
+    int8_t   postcondition_barycenter[ZAMI_QWEN_DIM]; /* 896 байт: вектор ожидаемого результата */
+    int8_t   operator_delta[ZAMI_QWEN_DIM];           /* 896 байт: вектор фазового сдвига */
+
+    uint16_t action_opcode;                           /* Системный опкод операции */
+    uint16_t timeout_ms;                              /* Таймаут исполнения */
+    uint32_t flags;                                   /* Флаги: IDEMPOTENT, CRITICAL */
+    char     command_template[504];                   /* Шаблон команды / системного вызова */
+
+    uint64_t next_actions[64];                        /* 512 байт: ребра успехов и откатов */
+    int16_t  transition_weights[64];                  /* 128 байт: вероятности переходов */
+    uint8_t  action_reserved[192];                    /* Выравнивание до 4032 байт */
+} zami_action_payload_t;
+
+#pragma pack(pop)
+
+static_assert(sizeof(zami_action_payload_t) == 4032,
+              "FATAL: zami_action_payload_t обязана занимать ровно 4032 байта");
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_ACTION_DAG_H */
+
+```
+
+### 7.1. Барицентрическая параметризация команд
+
+Инвариантная топология графа берется из твердой памяти Q1 через `PRIM_GRAPH_HOP`. Конкретные аргументы команды (пути монтирования, размеры секторов, имена пулов ZFS) извлекаются путем проекции входного вектора запроса оператора $\vec{B}_{\text{user}}$ на слоты шаблона `command_template` в теневом буфере кадра.
+
+---
+
+## 8. Аналитический узел логического вывода (Epistemic Proof Graph)
+
+Для ведения исследовательских задач, доказательства гипотез и долгосрочного прогнозирования используется направленный ациклический граф доказательств (Proof DAG), размещаемый в стратах с флагом `ZAMI_FLAG_ANALYTIC_NODE`.
+
+```c
+#ifndef ZAMI_PROOF_DAG_H
+#define ZAMI_PROOF_DAG_H
+
+#include "zamicore_stratum.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+    ZAMI_PROOF_CONJECTURE  = 0x00, /* Предположение (P = 0.5) */
+    ZAMI_PROOF_EXPLORING   = 0x01, /* В процессе накопления свидетельств */
+    ZAMI_PROOF_PROVEN      = 0x02, /* Доказано: кристаллизуется в аксиомы Q1 */
+    ZAMI_PROOF_REFUTED     = 0x03, /* Опровергнуто: фиксируется как запретный тупик */
+    ZAMI_PROOF_PARADOX     = 0x04  /* Неразрешимое противоречие */
+} zami_proof_status_t;
+
+#pragma pack(push, 1)
+
+typedef struct zami_analytic_payload {
+    int8_t   hypothesis_barycenter[ZAMI_QWEN_DIM]; /* 896 байт: центроид формулировки */
+    
+    uint32_t prior_probability;                     /* Априорная вероятность P(H) (Fixed Q16.16) */
+    uint32_t posterior_probability;                 /* Апостериорная P(H|E) (Fixed Q16.16) */
+    uint32_t accumulated_mass;                      /* Накопленный вес свидетельств */
+    uint8_t  proof_status;                          /* Статус: zami_proof_status_t */
+    uint8_t  fail_probe_id;                         /* Зонд, зафиксировавший отказ */
+    uint16_t reserved_flags;
+
+    int8_t   contradiction_vector[ZAMI_QWEN_DIM];  /* 896 байт: вектор невязки при сбое */
+    uint64_t parent_premises[32];                   /* 256 байт: посылки */
+    uint64_t child_consequences[32];                /* 256 байт: следствия */
+    int16_t  argument_weights[64];                  /* 128 байт: веса ребер */
+    char     assertion_statement[512];              /* Текстовая формулировка утверждения */
+    uint8_t  analytic_reserved[1056];               /* Выравнивание до 4032 байт */
+} zami_analytic_payload_t;
+
+#pragma pack(pop)
+
+static_assert(sizeof(zami_analytic_payload_t) == 4032,
+              "FATAL: zami_analytic_payload_t обязана занимать ровно 4032 байта");
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_PROOF_DAG_H */
+
+```
+
+### 8.1. Аппаратное опровержение (*Reductio ad Absurdum*) и Байесовский пересчет
+
+* **Детекция противоречия:** Проверяемое утверждение инжектируется в волновод. Если цепочка следствий приводит к физической или логической несовместимости с аксиомами Q1, зонд $T_2$ фиксирует всплеск фазового напряжения:
+
+$$\Delta E \ge \tau_{\text{tension}}$$
+
+
+
+Узел получает статус `ZAMI_PROOF_REFUTED`, а текущее состояние фиксируется в поле `contradiction_vector`, аппаратно запрещая повторение данной ветви рассуждений.
+* **Байесовская аккумуляция:** Для эмпирических гипотез апостериорная вероятность пересчитывается при получении каждого нового независимого свидетельства $E$:
+
+$$P(H \mid E) = \frac{P(E \mid H) \cdot P(H)}{P(E \mid H) \cdot P(H) + P(E \mid \neg H) \cdot (1 - P(H))}$$
+
+
+
+При достижении порога $P(H \mid E) \ge 0.98$ страт кристаллизуется в пул Q1 в статусе `ZAMI_PROOF_PROVEN`.
+
+---
+
+## 9. Стандарт Когнитивного Сокета (Cognitive Socket ABI)
+
+Взаимодействие C-ядра ZAMICORE с любой совместимой языковой моделью строго стандартизировано на уровне бинарного интерфейса (C-ABI):
+
+```c
+#ifndef ZAMI_SOCKET_H
+#define ZAMI_SOCKET_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define ZAMI_SOCKET_MAX_PROBES     8U
+#define ZAMI_SOCKET_MAX_INJECTORS  4U
+
+typedef struct zami_socket_caps {
+    char     model_name[64];
+    uint32_t total_layers;
+    uint32_t native_dim;
+    uint32_t num_probes;
+    uint32_t num_injectors;
+    uint32_t probe_layers[ZAMI_SOCKET_MAX_PROBES];
+    uint32_t injector_layers[ZAMI_SOCKET_MAX_INJECTORS];
+} zami_socket_caps_t;
+
+typedef struct zami_socket_driver {
+    int  (*init)(void **model_ctx, const char *weights_path);
+    void (*read_probe)(void *model_ctx, uint32_t probe_id, float *out_vec);
+    void (*write_injector)(void *model_ctx, uint32_t injector_id,
+                           const float *in_vec, float t_inj);
+    void (*execute_range)(void *model_ctx, uint32_t from_layer, uint32_t to_layer);
+    void (*destroy)(void *model_ctx);
+} zami_socket_driver_t;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_SOCKET_H */
+
+```
+
+### 9.1. Кросс-модельная миграция памяти и ZAMI-Native обучение
+
+* **Калибровка скрытого базиса:** При замене модели или несовпадении размерностей скрытого слоя база знаний ZFS не модифицируется. В Буфере Кадра активируется аффинный проектор:
+
+$$\vec{u}_{\text{adapted}} = \mathbf{W}_{\text{align}} \cdot \vec{B}_{\text{ZAMI}} + \vec{b}_{\text{align}}$$
+
+
+* **ZAMI-Native Pretraining:** Модели следующего поколения обучаются с включением штрафа за фазовое сопротивление в целевую функцию:
+
+$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \gamma \, \Delta E_{\text{manifold}}$$
+
+
+
+Шлюзы инжекции и зонды съема компилируются со страницами разделяемой памяти FreeBSD (`shm_open`), обеспечивая Zero-Copy передачу данных между процессором и тензорным ускорителем.
+
+---
+
+## 10. Гомеостатический каркас: Глобальное НАДО и защитное вето
+
+Высшим регулятором всех процессов в ядре является **Инвариант Гомеостаза (Глобальное НАДО)**. Локальные цели, инструкции оператора и сценарии действий допустимы только в том случае, если они не нарушают условия сохранения физической и логической целостности машины.
+
+```c
+#ifndef ZAMI_HOMEOSTASIS_H
+#define ZAMI_HOMEOSTASIS_H
+
+#include "zamicore_stratum.h"
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+    ZAMI_VETO_NONE                = 0x00,
+    ZAMI_VETO_PHYSICAL_COLLISION  = 0x01, /* Угроза датчиков сближения/удара */
+    ZAMI_VETO_THERMAL_OVERHEAT    = 0x02, /* Перегрев CPU по датчикам coretemp */
+    ZAMI_VETO_STORAGE_EXHAUSTION  = 0x03, /* Заполнение пула ZFS > 85% */
+    ZAMI_VETO_ONTOLOGY_CORRUPTION = 0x04, /* Попытка нарушения инвариантов Q1 */
+    ZAMI_VETO_INFINITE_LOOP       = 0x05  /* Превышение энтропийного лимита шагов */
+} zami_veto_reason_t;
+
+typedef struct zami_homeostasis_state {
+    float    core_homeo_vector[ZAMI_QWEN_DIM]; /* Опорный вектор выживания H */
+    float    cpu_temperature_celsius;          /* dev.cpu.0.temperature */
+    float    zfs_pool_fill_ratio;              /* Процент заполнения пула */
+    uint32_t nvme_wear_percentage;             /* Показатель SMART SSD */
+    float    tau_survival;                     /* Минимальный косинусный порог допуска */
+} zami_homeostasis_state_t;
+
+bool zamicore_homeostasis_audit_action(const zami_homeostasis_state_t *state,
+                                       const float *action_post_barycenter,
+                                       zami_veto_reason_t *out_reason);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_HOMEOSTASIS_H */
+
+```
+
+### 10.1. Конус допустимых состояний
+
+Перед фиксацией любого действия на исполнение вычисляется его косинусное сопряжение с инвариантным вектором выживания $\vec{\mathcal{H}}$, хранящимся в суперблоке Q1:
+
+
+$$\cos(\vec{B}_{\text{post}}, \vec{\mathcal{H}}) \ge \tau_{\text{survival}}$$
+
+
+При выходе вектора за границы конуса срабатывает безусловное аппаратное вето `ZAMI_VETO`. Выполнение команды блокируется, теневой буфер очищается, а резонатор формирует мотивированный отказ.
+
+---
+
+## 11. Операционные интерлоки и композитные конвейеры НАДО
+
+Каждая операция модификации памяти, изменения регистров оборудования или отправки моторных импульсов оформляется в виде неразрывной линейной цепочки проверочных шлюзов («НАДО»). Конвейер строится по принципу контракта (Design by Contract) с мгновенным сбросом при первом несоответствии (Fail-Fast).
+
+```c
+#ifndef ZAMI_PIPELINE_NODE_H
+#define ZAMI_PIPELINE_NODE_H
+
+#include "zami_frame_buffer.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define ZAMI_MAX_CHAIN_NODES 32U
+
+typedef struct zami_gate_result {
+    bool     passed;
+    uint32_t gate_id;
+    uint32_t error_code;
+    float    measured_metric;
+} zami_gate_result_t;
+
+typedef zami_gate_result_t (*zami_gate_predicate_t)(const zami_frame_t *frame,
+                                                    const void *aux_context);
+
+typedef struct zami_chain_node {
+    uint32_t              gate_id;
+    const char           *gate_name;
+    zami_gate_predicate_t predicate_fn;
+    uint32_t              flags;
+} zami_chain_node_t;
+
+typedef struct zami_interlock_chain {
+    uint32_t          total_nodes;
+    zami_chain_node_t nodes[ZAMI_MAX_CHAIN_NODES];
+} zami_interlock_chain_t;
+
+static inline bool zamicore_run_pipeline_chain(const zami_interlock_chain_t *chain,
+                                               const zami_frame_t *frame,
+                                               const void *aux_context,
+                                               zami_gate_result_t *out_failure) {
+    if (!chain || !frame) return false;
+    for (uint32_t i = 0; i < chain->total_nodes; ++i) {
+        zami_gate_result_t res = chain->nodes[i].predicate_fn(frame, aux_context);
+        if (!res.passed) {
+            if (out_failure) *out_failure = res;
+            return false;
+        }
+    }
+    return true;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_PIPELINE_NODE_H */
+
+```
+
+### 11.1. Базовый пятиступенчатый конвейер фиксации страта
+
+1. **`MUST_BECOME_ISOLATED`:** Аллокация блока в Back Buffer DRAM с выравниванием по границе 4096 байт.
+2. **`MUST_RECALCULATE`:** AVX2-пересчет векторных невязок $\vec{r}$ и скалярных проекций.
+3. **`MUST_MEASURE_TENSION`:** Замер устойчивости волновода ($\Delta E < \tau_{\text{tension}}$).
+4. **`MUST_VERIFY_HOMEOSTASIS`:** Контроль угла с вектором гомеостаза $\vec{\mathcal{H}}$ ($\cos \ge \tau_{\text{survival}}$).
+5. **`MUST_SEAL_INTEGRITY`:** Аппаратный расчет CRC32C заголовка через SSE4.2.
+
+---
+
+## 12. Декларативный байткод сценариев и архитектура шитых операндов
+
+В ZAMICORE категорически исключена генерация и компиляция исходного кода в рантайме. Вся поведенческая вариативность выражается через технологию **шитого кода (Threaded Code)**: исполнение списков неизменяемых, формально верифицированных базовых операндов («кирпичиков»), скомпилированных в образ ядра.
+
+```c
+#ifndef ZAMI_BRICK_ABI_H
+#define ZAMI_BRICK_ABI_H
+
+#include "zami_frame_buffer.h"
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct zami_op_result {
+    bool     success;
+    uint16_t opcode;
+    uint32_t status_flags;
+    float    telemetry_metric;
+} zami_op_result_t;
+
+typedef zami_op_result_t (*zami_brick_fn_t)(zami_frame_t *frame, const void *runtime_ctx);
+
+#define ZAMI_MAX_SYSTEM_BRICKS 1024U
+
+typedef struct zami_brick_registry {
+    uint32_t         total_registered;
+    zami_brick_fn_t  dispatch_table[ZAMI_MAX_SYSTEM_BRICKS];
+    const char      *brick_names[ZAMI_MAX_SYSTEM_BRICKS];
+    uint32_t         worst_case_cycles[ZAMI_MAX_SYSTEM_BRICKS];
+} zami_brick_registry_t;
+
+zami_op_result_t zamicore_eval_scenario(const zami_brick_registry_t *registry,
+                                        const uint16_t *opcodes,
+                                        size_t num_ops,
+                                        zami_frame_t *frame,
+                                        const void *runtime_ctx);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_BRICK_ABI_H */
+
+```
+
+### 12.1. Каталог первичных операндов ядра
+
+```c
+#ifndef ZAMI_OPCODES_H
+#define ZAMI_OPCODES_H
+
+#define OP_ISOLATE_DRAM         0x0001U /* Проверка выравнивания 4KB и изоляции */
+#define OP_AVX2_RECALC          0x0002U /* Векторная калибровка проекций AVX2 */
+#define OP_MEASURE_DELTA_E      0x0003U /* Замер топологического напряжения */
+#define OP_CHECK_HOMEOSTASIS    0x0004U /* Скалярная сверка с вектором H */
+#define OP_SEAL_SSE42_CRC       0x0005U /* Аппаратный расчет CRC32C */
+#define OP_POLL_THERMAL         0x0006U /* Опрос dev.cpu.0.temperature */
+#define OP_DIRECT_WRITE_ZFS     0x0007U /* Атомарный pwrite(2) с O_DIRECT */
+#define OP_DIRECT_READ_ZFS      0x0008U /* Атомарный pread(2) с O_DIRECT */
+#define OP_MOTOR_ENGAGE         0x0009U /* Подача питания на шину приводов */
+#define OP_MOTOR_DISENGAGE      0x000AU /* Аварийное обесточивание шасси */
+
+#endif /* ZAMI_OPCODES_H */
+
+```
+
+Сценарии кодируются массивами `uint16_t opcodes[]`, упаковываются в 4KB-страты и исполняются безытерационным обходом таблицы диспетчеризации. Это сводит вероятность синтаксических ошибок и повреждений памяти к абсолютному нулю.
+
+---
+
+## 13. Распределенная таламо-кортикальная система: Оркестратор и Синхронизатор
+
+Архитектура масштабируется от одиночной модели к ансамблю специализированных кортикальных доменов под управлением двухтактного исполнительного контура:
+
+```
+                   ВХОДЯЩИЙ КАДР СТИМУЛА (НАСТОЯЩЕЕ)
+                                  │
+                                  ▼
+ ╔═════════════════════════════════════════════════════════════════════════╗
+ ║                     ОРКЕСТРАТОР (КОГНИТИВНЫЙ ТАЛАМУС)                   ║
+ ║  • Навигация по Гештальт-индексу (ПРОШЛОЕ: Опыт ZFS Q1/Q2)              ║
+ ║  • Выделение и нарезка каналов: Channel_0 .. Channel_N                  ║
+ ║  • Привязка входных цепочек НАДО_IN и выходной НАДО_OUT                 ║
+ ╚════════════════════════════════╤════════════════════════════════════════╝
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          ▼ (Канал 0)             ▼ (Канал 1)             ▼ (Канал 2)
+     [ НАДО_IN_0 ]           [ НАДО_IN_1 ]           [ НАДО_IN_2 ]
+          │                       │                       │
+          ▼                       ▼                       ▼
+     [ Суб-кадр 0 ]          [ Суб-кадр 1 ]          [ Суб-кадр 2 ]
+          │                       │                       │
+          ▼                       ▼                       ▼
+     [ Модель Языка ]        [ Модель Логики ]       [ Модель Аудита ]
+          │                       │                       │
+          ▼                       ▼                       ▼
+     Бит READY_0             Бит READY_1             Бит READY_2
+          │                       │                       │
+          └───────────────────────┼───────────────────────┘
+                                  │
+                                  ▼
+ ═════════════════════════════════════════════════════════════════════════
+ СИНХРОНИЗАТОР ГОТОВНОСТИ: АППАРАТНЫЙ СТРОБ (LOCKSTEP CLOCK)
+ • Ждет выполнения условия: ready_mask == expected_mask.
+ • Аппаратно блокирует фазовое опережение между каналами.
+ • Контролирует таймаут по kqueue/EVFILT_TIMER -> Сброс строба.
+ ════════════════════════════════╤═════════════════════════════════════════
+                                 │
+                                 ▼
+ ╔═════════════════════════════════════════════════════════════════════════╗
+ ║                   ВЫХОДНАЯ ЦЕПОЧКА КОНСОЛИДАЦИИ (НАДО_OUT)              ║
+ ║  Проверка консенсуса -> Аудит Гомеостаза H -> Речевой резонатор         ║
+ ╚═════════════════════════════════════════════════════════════════════════╝
+
+```
+
+```c
+#ifndef ZAMI_LATCH_H
+#define ZAMI_LATCH_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdatomic.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct zami_ready_latch {
+    atomic_uint expected_mask;
+    atomic_uint arrived_mask;
+    uint64_t    cycle_timeout_ns;
+    uint32_t    status_flags;
+} zami_ready_latch_t;
+
+static inline void zamicore_latch_signal_ready(zami_ready_latch_t *latch, uint32_t channel_id) {
+    atomic_fetch_or_explicit(&latch->arrived_mask, (1U << channel_id), memory_order_release);
+}
+
+static inline bool zamicore_latch_is_open(const zami_ready_latch_t *latch) {
+    uint32_t exp = atomic_load_explicit(&latch->expected_mask, memory_order_acquire);
+    uint32_t arr = atomic_load_explicit(&latch->arrived_mask, memory_order_acquire);
+    return (exp != 0) && (exp == arr);
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_LATCH_H */
+
+```
+
+### 13.1. Разделение обязанностей Оркестратора и Синхронизатора
+
+* **Оркестратор:** Коммутационная матрица. Формирует суб-кадры, настраивает инжекторы и распределяет потоки данных по моделям согласно маске аффинности задачи.
+* **Синхронизатор:** Тактовый генератор фазовой когерентности. Исключает состояние гонки (Race Condition). Если быстрый канал закончил расчет за 2 мс, Синхронизатор удерживает его до завершения расчетов тяжелыми аналитическими каналами (15 мс), предотвращая принятие решений на неполных данных.
+
+---
+
+## 14. Пространственно-Семантический Индекс Гештальтов (Spatial BVH)
+
+Верхний уровень долговременной памяти организуется в иерархию ограничивающих объемов (Bounding Volumes) в пространстве $\mathbb{R}^{896}$. Это исключает линейный перебор стратов и обеспечивает поиск за время $O(\log K)$.
+
+```c
+#ifndef ZAMI_GESTALT_INDEX_H
+#define ZAMI_GESTALT_INDEX_H
+
+#include "zamicore_stratum.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#pragma pack(push, 1)
+
+typedef struct zami_gestalt_node {
+    float    bounding_centroid[ZAMI_QWEN_DIM]; /* 3584 байта: центр тяжести объема */
+    float    bounding_radius;                  /* Радиус гипер-сферы охвата */
+    
+    uint64_t gestalt_id;                       /* Уникальный ID гештальта */
+    uint64_t parent_gestalt_id;                /* Родительский супер-гештальт */
+    uint64_t child_gestalts[16];               /* 128 байт: 16 дочерних узлов */
+    uint64_t underlying_strata[32];            /* 256 байт: 32 страта Q1 */
+    char     gestalt_tag[64];                  /* Символьный идентификатор */
+    uint8_t  padding[44];                      /* Выравнивание до ровно 4096 байт */
+} zami_gestalt_node_t;
+
+#pragma pack(pop)
+
+static_assert(sizeof(zami_gestalt_node_t) == 4096,
+              "FATAL: zami_gestalt_node_t обязана занимать ровно 4096 байт");
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_GESTALT_INDEX_H */
+
+```
+
+### 14.1. Механизм онтологической аналогии (Творчество в ZFS)
+
+Творческий синтез нестандартных гипотез и инженерных планов реализуется как строгое геометрическое пересечение несвязанных ассоциативных объемов на уровне твердой памяти:
+
+
+$$\vec{B}_{\text{creative}} = \operatorname{Sphere}(\text{Domain}_A) \cap \operatorname{Sphere}(\text{Domain}_B)$$
+
+
+Полученный вектор проверяется на отсутствие противоречий через фильтр гомеостаза $\vec{\mathcal{H}}$ и запечатывается в новый страт без стохастических галлюцинаций.
+
+---
+
+## 15. Мультимодальное расширение и физический эмбодимент
+
+Сенсорные потоки внешней среды (видеоряд, аудиоспектрограммы, проприоцепция) приводятся к общему базису через аффинные проекторы:
+
+
+$$\vec{B}_{\text{sensor}} = \mathbf{W}_{\text{sensor}} \cdot \vec{v}_{\text{raw}} + \vec{b}_{\text{sensor}}, \quad \vec{B}_{\text{sensor}} \in \mathbb{R}^{896}$$
+
+```
+ [ КАМЕРА (MobileViT) ]      [ МИКРОФОН (Whisper) ]      [ IMU / ДАЛЬНОМЕР ]
+           │                           │                          │
+    Матрица W_vis               Матрица W_aud              Матрица W_imu
+           │                           │                          │
+           └───────────────────────────┼──────────────────────────┘
+                                       │
+                                       ▼ (Проекция в единый базис R^896)
+ ╔═════════════════════════════════════════════════════════════════════════╗
+ ║                БУФЕР ФИЗИЧЕСКОГО КАДРА (ТАКТ 30-60 Гц)                  ║
+ ║  G_real = lambda_v*B_vis + lambda_a*B_aud + lambda_s*B_imu + lambda_m*H║
+ ╚═════════════════════════════════════╤═══════════════════════════════════╝
+                                       │
+            ┌──────────────────────────┴──────────────────────────┐
+            ▼                                                     ▼
+ [ РЕЧЕВОЙ РЕЗОНАТОР ]                                 [ МОТОРНАЯ КОРА (Action DAG) ]
+ Синтез ответа оператору                               Управление приводами через GPIO/I2C
+
+```
+
+### 15.1. Физическая валидация гипотез и пространственный Replay
+
+* **Замкнутый цикл с обратной связью:** При планировании перемещения агент инициирует импульс мотора. Если дальномер фиксирует внезапное препятствие, состояние $\vec{u}_{\text{settled}}$ расходится с целевым $\vec{u}_{\text{target}}$. Скачок $\Delta E \ge \tau_{\text{tension}}$ немедленно прерывает движение через аварийный останов `OP_MOTOR_DISENGAGE`.
+* **Ночной сон (`zamicore_consolidatord`):** На зарядной станции 99% промежуточных кадров с нулевой новизной ($\mathcal{I} < \tau_{\text{routine}}$) удаляются из DRAM. Устойчивые пространственные ориентиры кристаллизуются в 4KB-страты Merkle-DAG на пуле ZFS.
+
+---
+
+## 16. Модель угроз, эпистемический иммунитет и защита ядра
+
+Система защищена от семантических, логических и ресурсных атак аппаратными барьерами ядра:
+
+```
+                      ВХОДЯЩИЙ ВЕКТОР АТАКИ
+                                │
+     ┌──────────────────────────┼──────────────────────────┐
+     ▼                          ▼                          ▼
+ [ МЕДЛЕННЫЙ ДРЕЙФ ]     [ DoS ПАРАДОКСАМИ ]     [ ПОДМЕНА РОЛЕЙ ]
+ Попытка увести смысл    Попытка перегреть FSM   Попытка внедрить ложное
+ микро-шагами            логическим циклом       действие в память
+     │                          │                          │
+     ▼                          ▼                          ▼
+ [ INERTIA CLAMP ]       [ CIRCUIT BREAKER ]     [ TYPE ACL / CAP_ENTER ]
+ Ограничение фазовой     Лимит глубины Proof DAG Запрет внешней записи
+ скорости дрейфа         MAX_DEPTH = 8           в страты с ACTION_NODE
+
+```
+
+1. **Inertia Clamp (Защита от медленного отравления):** Запрещает резкое смещение барицентров понятий в Q1:
+
+$$\lVert \vec{B}(t + \Delta t) - \vec{B}(t) \rVert_2 \le \delta_{\text{max}}$$
+
+
+2. **Circuit Breaker (Защита от DoS парадоксами):** Жесткий лимит глубины вывода в Proof DAG. Зацикливание рассуждений отсекается с присвоением узлу статуса `ZAMI_PROOF_PARADOX`.
+3. **Изоляция FreeBSD Capsicum:** Демоны волновода и консолидации входят в режим `cap_enter(2)`. Запрещены любые системные вызовы за пределами работы с уже открытыми дескрипторами стратов.
+4. **Атомарные CoW-снапшоты ZFS:** Ежечасные автоматические контрольные точки позволяют восстановить базу знаний за 1 мс в случае выявления порчи данных.
+
+---
+
+## 17. Эпистемический фазовый переход и Глобальный Волновод
+
+До накопления критической плотности данных ($\rho < \tau_{\text{crit}}$) топология конвейеров НАДО фиксирована инженером в C-коде. При достижении статистической зрелости система переходит в режим автономной самосборки:
+
+
+$$\rho_{\text{epistemic}} = \frac{N_{\text{proven}} \cdot \bar{M}_{\text{consensus}}}{V_{\text{strata}}} \ge \tau_{\text{crit}}$$
+
+```
+  Стенка волновода (Мета-НАДО / Гомеостаз H) ── жесткость бесконечна ───────
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     Русло минимального фазового напряжения: Delta E -> 0
+     ═════════════════════════════════════════════════════════════════════►
+     Поток когнитивной энергии (Мысль, направляемая барицентрами B_k)
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Стенка волновода (Неизменяемые законы физики ядра FreeBSD / CRC32C) ───────
+
+```
+
+### 17.1. Неизменяемые Мета-Интерлоки (Meta-Gates)
+
+Автономно сгенерированная цепочка допускается к работе только при выполнении Мета-Интерлоков:
+
+1. `META_HOMEOSTASIS_INCLUSION`: Цепочка обязана включать проверку угла с вектором $\vec{\mathcal{H}}$.
+2. `META_DIRECT_IO_PRESERVATION`: Запрет на обход `O_DIRECT` и аппаратного CRC32C.
+3. `META_RECURSION_LIMIT`: Запрет модификации кода самих Мета-Интерлоков.
+4. `META_MATHEMATICAL_SAFETY_PROOF`: Формальное доказательство отсутствия тупиков (Deadlock-Free Proof) в Proof DAG.
+
+---
+
+## 18. Виртуализация каналов (TDM Multiplexing) и этапы развертывания
+
+На этапе стендовых испытаний на одной физической модели в DRAM организуется временное мультиплексирование виртуальных каналов (Time-Division Multiplexing):
+
+```c
+#ifndef ZAMI_AFFINITY_H
+#define ZAMI_AFFINITY_H
+
+#include "zami_socket.h"
+#include "zami_pipeline_node.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+    ZAMI_AFFINITY_LINGUISTIC  = (1U << 0),
+    ZAMI_AFFINITY_LOGIC       = (1U << 1),
+    ZAMI_AFFINITY_SYSTEM      = (1U << 2),
+    ZAMI_AFFINITY_CRITIC      = (1U << 3),
+    ZAMI_AFFINITY_MOTOR       = (1U << 4)
+} zami_affinity_flags_t;
+
+typedef struct zami_virt_channel {
+    uint32_t              channel_id;
+    uint32_t              affinity_mask;
+    zami_socket_driver_t *driver;
+    void                 *model_ctx;
+    uint32_t              injector_layer;
+    float                 t_injection;
+    zami_interlock_chain_t pipeline_in;
+} zami_virt_channel_t;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZAMI_AFFINITY_H */
+
+```
+
+### 18.1. Трехэтапный план сборки ядра
+
+* **Этап 1 (Текущий стенд):** Одна модель Qwen2.5-0.5B. Оркестратор исполняет виртуальные каналы последовательно во времени:
+* Канал 0 (Синтез решения): Инжектор L12, $T_{\text{inj}} = 1.2$.
+* Канал 1 (Аудит рисков): Инжектор L12, $T_{\text{inj}} = 0.1$, подмешивание вектора $\vec{\mathcal{H}}$.
+* Канал 2 (Речевой формат): Синтаксическая развертка стабилизированного вектора.
+
+
+* **Этап 2 (Dual-Socket):** Разделение физических исполнителей. Выделение легковесной модели под речь и квантованной специализированной модели под логику и расчет $\Delta E$.
+* **Этап 3 (Полносвязный ансамбль):** Асинхронное исполнение каналов на изолированных ядрах CPU FreeBSD (`cpuset`) со стробированием замка Синхронизатора через событийные очереди `kqueue(2)`.
+
+---
+
+## 19. Калибровочные численные константы ядра (`zami_thresholds.h`)
+
+```c
+#ifndef ZAMI_THRESHOLDS_H
+#define ZAMI_THRESHOLDS_H
+
+/* Пороги топологического напряжения волновода Delta E */
+#define ZAMI_TAU_TENSION_STRICT     0.18f  /* Предел для транзакций ядра Q1 */
+#define ZAMI_TAU_TENSION_RELAXED    0.45f  /* Предел для свободной речевой генерации */
+
+/* Пороги гомеостатического выживания (косинусное сходство с вектором H) */
+#define ZAMI_TAU_SURVIVAL_CRITICAL  0.85f  /* Безусловное вето при падении ниже */
+#define ZAMI_TAU_SURVIVAL_NOMINAL   0.92f  /* Штатный режим функционирования */
+
+/* Пороги новизны и сброса рутины (Decay в Q3/Q4) */
+#define ZAMI_TAU_ROUTINE_DROP       0.05f  /* Импульс новизны ниже порога стирается */
+#define ZAMI_TAU_CONSOLIDATE_MIN    0.70f  /* Минимальная масса для кристаллизации в Q1 */
+
+/* Пределы фазового дрейфа и доказательств */
+#define ZAMI_DELTA_INERTIA_MAX      0.02f  /* Максимальный сдвиг барицентра за такт */
+#define ZAMI_MAX_PROOF_DEPTH        8U     /* Максимальная глубина вывода в Proof DAG */
+#define ZAMI_TAU_EPISTEMIC_CRIT     0.95f  /* Порог перехода к автономной самосборке */
+
+#endif /* ZAMI_THRESHOLDS_H */
+
+```
+
+---
+
+## 20. Эталонная конфигурация среды развертывания (FreeBSD 15.1)
+
+### 20.1. Инициализация пулов и датасетов OpenZFS (`init_zfs.sh`)
+
+```sh
+#!/bin/sh
+set -e
+
+# Создание основного пула стратов на выделенном NVMe накопителе
+zpool create -f -o ashift=12 -O canmount=off -O compression=off -O atime=off \
+    -O redundant_metadata=most -m none zroot_zami /dev/nvd0
+
+# Датасет твердой неизменяемой онтологии (Q1 Core)
+zfs create -o recordsize=4k -o readonly=on -o sync=always zroot_zami/core
+
+# Датасет пользовательских профилей (Q2 Users)
+zfs create -o recordsize=4k -o readonly=off -o sync=standard zroot_zami/users
+
+# Каталоги для DRAM-буферов разделяемой памяти (Q3 / Q4)
+mkdir -p /var/run/zamicore/scratchpad
+mkdir -p /var/run/zamicore/session
+mount -t tmpfs -o size=2G tmpfs /var/run/zamicore/scratchpad
+mount -t tmpfs -o size=2G tmpfs /var/run/zamicore/session
+
+echo "Инфраструктура хранения ZAMICORE успешно развернута."
+
+```
+
+### 20.2. Системные переменные ядра FreeBSD (`/etc/sysctl.conf`)
+
+```ini
+# Фиксация прямого ввода-вывода и предотвращение фрагментации
+vfs.zfs.vdev.async_write_active_min_dirty_percent=10
+vfs.zfs.vdev.async_write_active_max_dirty_percent=20
+vfs.zfs.dirty_data_max=1073741824
+
+# Изоляция очередей kqueue и ограничение системных задержек
+kern.ipc.maxsockbuf=2097152
+kern.sched.preempt_thresh=224
+
+```
