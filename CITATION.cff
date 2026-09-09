@@ -1,19 +1,21 @@
 cff-version: 1.2.0
 message: "If you use or implement this architectural standard, please cite it as below."
-title: "ZamiCore v2.3: Deterministic Waveguide & Topological Memory Architecture"
-abstract: "A non-patented open scientific specification for deterministic AI inference using conical flat-bottom waveguides, 23,488-byte V-buffer swap-chains, and NVMe-backed hierarchical tree attention."
+title: "ZAMICORE v2.3: Deterministic Cognitive Operating System on FreeBSD and OpenZFS"
+abstract: "A deterministic open cognitive operating system specification and substrate decoupling logic, memory, and reasoning from neural model weights using OpenZFS 4KB strata Merkle-DAG, AVX2 FSM primitives, and hardware-enforced epistemic interlocks."
 type: software
 authors:
-  - name: "ZamiCore Architecture Working Group"
+  - name: "bibishaki"
+    alias: "ZAMICORE Contributors"
 version: "2.3.0"
 date-released: "2026-09-05"
 license: "BSD-2-Clause"
 doi: "10.5281/zenodo.22313830"
-repository-code: "https://github.com"
+repository-code: "https://github.com/bibishaki/zamicore"
 keywords:
+  - "cognitive operating system"
   - "deterministic inference"
   - "topological memory"
-  - "waveguide attention"
+  - "merkle-dag"
   - "openzfs"
   - "freebsd"
   - "prior art"
