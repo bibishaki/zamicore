@@ -154,52 +154,22 @@ cc -std=c11 -Wall -Wextra -Werror -msse4.2 -mavx2 -mfma \
 make test
 
 ```
-
----
-
 ## 7. Цитирование (Citation)
 
-При использовании архитектурных решений, структур данных 4KB-стратов или математического аппарата ZAMICORE в исследованиях и публикациях используйте следующую форму фиксации:
+При использовании архитектурных решений, структур данных 4KB-стратов или математического аппарата ZAMICORE в исследованиях и публикациях используйте следующую форму фиксации[cite: 1]:
 
 ```bibtex
 @software{zamicore2026,
-  author       = {ZAMICORE Contributors},
+  author       = {bibishaki},
   title        = {ZAMICORE: Deterministic Cognitive Operating System on FreeBSD and OpenZFS},
   year         = {2026},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.22313830},
-  url          = {https://doi.org/10.5281/zenodo.22313830}
+  url          = {[https://doi.org/10.5281/zenodo.22313830](https://doi.org/10.5281/zenodo.22313830)}
 }
-
-```
-
 ---
 
-## 8. Лицензия (License)
+8. Лицензия (License)
+Copyright (c) 2026, bibishaki.
 
-Проект распространяется под лицензией **BSD 2-Clause "Simplified" License**:
-
-```text
-Copyright (c) 2026, ZAMICORE Contributors. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-```
+Проект распространяется под открытой лицензией BSD 2-Clause "Simplified" License. Полный юридический текст доступен в файле LICENSE.
