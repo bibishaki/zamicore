@@ -164,12 +164,12 @@ $\vec{\mathcal{H}}$.
 При выходе за конус допустимых параметров срабатывает аппаратное вето `ZAMI_ACTION_VETO`.
 
 
-**Операционные интерлоки:** Запись любого блока на диск предваряется линейной цепочкой безусловных микро-проверок:
+* **Операционные интерлоки:** Запись любого блока на диск предваряется линейной цепочкой безусловных микро-проверок[cite: 1]:
 
-$$\text{MUST\_ISOLATE} \implies \text{MUST\_RECALC\_AVX2} \implies \text{MUST\_TEST\_TENSION} \implies \text{MUST\_CHECK\_HOMEO} \implies \text{MUST\_SEAL\_CRC32} \implies \text{COMMIT}$$
-
-
----
+```mermaid
+flowchart LR
+    A[MUST_ISOLATE] --> B[MUST_RECALC_AVX2] --> C[MUST_TEST_TENSION] --> D[MUST_CHECK_HOMEO] --> E[MUST_SEAL_CRC32] --> F[(COMMIT)]
+```
 
 ## 6. Сборка и развертывание
 
