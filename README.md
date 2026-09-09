@@ -164,10 +164,9 @@ $\vec{\mathcal{H}}$.
 При выходе за конус допустимых параметров срабатывает аппаратное вето `ZAMI_ACTION_VETO`.
 
 
-* **Операционные интерлоки:** Запись любого блока на диск предваряется линейной цепочкой безусловных микро-проверок:
+**Операционные интерлоки:** Запись любого блока на диск предваряется линейной цепочкой безусловных микро-проверок:
 
 $$\text{MUST\_ISOLATE} \implies \text{MUST\_RECALC\_AVX2} \implies \text{MUST\_TEST\_TENSION} \implies \text{MUST\_CHECK\_HOMEO} \implies \text{MUST\_SEAL\_CRC32} \implies \text{COMMIT}$$
-
 
 
 ---
