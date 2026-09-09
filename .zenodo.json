@@ -1,7 +1,7 @@
 {
-  "title": "ZAMICORE: Deterministic Cognitive Operating System & Epistemic Substrate on FreeBSD / OpenZFS",
+  "title": "ZAMICORE: Deterministic Cognitive Operating System on FreeBSD and OpenZFS",
   "upload_type": "software",
-  "description": "Deterministic cognitive OS architecture decoupling logic, memory, and reasoning from neural weights using OpenZFS 4KB strata and FreeBSD kernel primitives.",
+  "description": "Deterministic cognitive OS architecture decoupling logic, memory, and reasoning from neural weights using OpenZFS 4KB strata.",
   "creators": [
     {
       "name": "bibishaki",
@@ -9,12 +9,5 @@
     }
   ],
   "access_right": "open",
-  "license": "BSD-2-Clause",
-  "keywords": [
-    "cognitive architecture",
-    "freebsd",
-    "openzfs",
-    "deterministic AI",
-    "operating systems"
-  ]
+  "license": "BSD-2-Clause"
 }
