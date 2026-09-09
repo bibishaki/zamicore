@@ -3,7 +3,11 @@
 > **Deterministic Cognitive Operating System & Epistemic Substrate on FreeBSD / OpenZFS**
 
 ---
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22313830.svg)](https://doi.org/10.5281/zenodo.22313830)
+[![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](LICENSE)
+[![Specification: v2.3](https://img.shields.io/badge/Specification-v2.3-green.svg)](#)
+[![Target Platform: FreeBSD 14+](https://img.shields.io/badge/Platform-FreeBSD_14+-red.svg)](#)
+[![Status: Master Freeze](https://img.shields.io/badge/Status-Prior_Art_Standard-brightgreen.svg)](#)
 ## 1. Парадигма: Субъект против Периферии
 
 ZAMICORE преодолевает фундаментальный порок современных LLM-систем — монополизацию интеллекта единой вероятностной нейросетью, страдающей от галлюцинаций, квадратичной сложности внимания и амнезии[cite: 1].
