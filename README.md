@@ -1,4 +1,4 @@
-# ZAMICORE
+# Reasoning Regime Experiment (RRE): Динамика скрытых представлений и топологическая устойчивость генерации кода
 
 > **Deterministic Cognitive Operating System & Epistemic Substrate on FreeBSD / OpenZFS**
 
@@ -8,8 +8,6 @@
 [![Specification: v2.3](https://img.shields.io/badge/Specification-v2.3-green.svg)](#)
 [![Target Platform: FreeBSD 14+](https://img.shields.io/badge/Platform-FreeBSD_14+-red.svg)](#)
 [![Status: Master Freeze](https://img.shields.io/badge/Status-Prior_Art_Standard-brightgreen.svg)](#)
-
-# Reasoning Regime Experiment (RRE): Динамика скрытых представлений и топологическая устойчивость генерации кода
 
 Фреймворк для исследования внутренних траекторий рассуждения авторегрессионных языковых моделей (LLM) в процессе генерации программного кода. Проект реализует пошаговый перехват скрытых состояний, онлайн-кластеризацию со сжатием истории, построение графов переходов, триангуляцию симплициальных комплексов и анализ топологического гомеоморфизма режимов генерации.
 
