@@ -173,7 +173,7 @@ $$\text{Stab}_{\text{top}} = \mathbb{1}\left[\vert{}K^*\vert{} \ge \rho(T_{\min}
 ### 1. Клонирование и окружение
 
 ```bash
-git clone https://github.com/your-username/rre-reasoning-regimes.git
+git clone https://github.com/bibishaki/rre-reasoning-regimes.git
 cd rre-reasoning-regimes
 
 python -m venv venv
@@ -261,7 +261,7 @@ python main.py --calibrate --calib-samples 6 --tasks 50 --output final_report.js
 ```bibtex
 @software{zamicore2026,
   author       = {bibishaki},
-  title        = {ZAMICORE: Deterministic Cognitive Operating System on FreeBSD and OpenZFS},
+  title        = {Reasoning Regime Experiment (RRE)},
   year         = {2026},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.22313830},
