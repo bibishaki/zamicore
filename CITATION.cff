@@ -1,21 +1,9 @@
 cff-version: 1.2.0
-message: "If you use or implement this architectural standard, please cite it as below."
-title: "ZAMICORE v2.3: Deterministic Cognitive Operating System on FreeBSD and OpenZFS"
-abstract: "A deterministic open cognitive operating system specification and substrate decoupling logic, memory, and reasoning from neural model weights using OpenZFS 4KB strata Merkle-DAG, AVX2 FSM primitives, and hardware-enforced epistemic interlocks."
-type: software
+message: "If you use this software or methodology in your research, please cite it as below."
 authors:
-  - name: "bibishaki"
-    alias: "ZAMICORE Contributors"
-version: "2.3.0"
-date-released: "2026-09-05"
-license: "BSD-2-Clause"
-doi: "10.5281/zenodo.22313830"
-repository-code: "https://github.com/bibishaki/zamicore"
-keywords:
-  - "cognitive operating system"
-  - "deterministic inference"
-  - "topological memory"
-  - "merkle-dag"
-  - "openzfs"
-  - "freebsd"
-  - "prior art"
+  - family-names: "YourLastName"
+    given-names: "YourFirstName"
+title: "Reasoning Regime Experiment (RRE): Hidden State Trajectories and Topological Invariants in LLM Code Generation"
+version: 0.1.0
+date-released: 2026-10-02
+url: "https://github.com/your-username/rre-reasoning-regimes"
